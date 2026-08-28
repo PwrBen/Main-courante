@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Terminal PCS - Réseau Actif</title>
+    <!-- Bibliothèques pour l'export PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #2c3e50; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
         .device { width: 100%; max-width: 450px; height: 100vh; max-height: 850px; background: #ecf0f1; display: flex; flex-direction: column; position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
@@ -36,11 +40,15 @@
 
         .btn { background: #27ae60; color: white; border: none; width: 100%; padding: 16px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; text-transform: uppercase; margin-top: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .btn-return { background: #7f8c8d; margin-top: 10px; }
+        
+        /* Boutons de l'espace Chef de Poste */
+        .btn-mention { background: #f39c12; font-size: 14px; margin-top: 10px; padding: 12px; }
+        .btn-pdf { background: #8e44ad; font-size: 14px; margin-top: 10px; padding: 12px; }
         .btn-export { background: #2980b9; font-size: 14px; margin-top: 10px; padding: 12px; }
         .btn-reset { background: #c0392b; font-size: 14px; margin-top: 10px; padding: 12px; }
 
         /* Tableau Main Courante Serveur */
-        .journal-container { background: white; border-radius: 8px; padding: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-height: 400px; overflow-y: auto; margin-bottom: 15px; position: relative;}
+        .journal-container { background: white; border-radius: 8px; padding: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-height: 300px; overflow-y: auto; margin-bottom: 15px; position: relative;}
         .journal-item { border-bottom: 1px solid #eee; padding: 10px 0; animation: fadeIn 0.5s;}
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         .journal-item:last-child { border-bottom: none; }
@@ -88,8 +96,9 @@
 
             <div class="section-title">L'Événement</div>
             <div class="row">
+                <!-- Les inputs gardent leur format technique HTML, la conversion a lieu en JS -->
                 <div class="form-group"><label>Date</label><input type="date" id="date" required></div>
-                <div class="form-group"><label>Heure</label><input type="time" id="time" required></div>
+                <div class="form-group"><label>Heure</label><input type="time" id="time" step="1" required></div>
             </div>
             <div class="form-group">
                 <label>Lieu exact</label>
@@ -144,7 +153,9 @@
             <div class="loader">Connexion à la base de données Google Sheets...</div>
         </div>
 
-        <button type="button" class="btn btn-export" onclick="fermerEtExporterJournal()">📥 Fermer la main courante et l'éditer</button>
+        <button type="button" class="btn btn-mention" onclick="ajouterMentionChef()">✍️ Ajouter une mention au journal</button>
+        <button type="button" class="btn btn-pdf" onclick="exporterJournalPDF()">📄 Éditer la Main Courante (PDF)</button>
+        <button type="button" class="btn btn-export" onclick="fermerEtExporterJournal()">📥 Fermer la main courante et exporter (CSV)</button>
         <button type="button" class="btn btn-reset" onclick="resetJournal()">🗑️ Remise à Zéro du Registre (Serveur)</button>
         <button type="button" class="btn btn-return" onclick="returnToMenu()">Retour au menu</button>
     </div>
@@ -173,13 +184,35 @@
 
     const ADMIN_PWD = "@main courante";
     let liveRefreshInterval = null;
-    let localDataBackup = []; // Pour l'export CSV
-    let currentChefDePoste = ""; // Stocke le nom du Chef de Poste
+    let localDataBackup = []; // Pour les exports
+    let currentChefDePoste = ""; 
 
-    window.onload = function() {
+    // --- UTILITAIRES DE DATE ET HEURE ---
+    function getFormattedDate() {
+        const now = new Date();
+        const d = String(now.getDate()).padStart(2, '0');
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const y = now.getFullYear();
+        return `${d}-${m}-${y}`; // JJ-MM-AAAA
+    }
+
+    function getFormattedTime() {
+        const now = new Date();
+        const h = String(now.getHours()).padStart(2, '0');
+        const m = String(now.getMinutes()).padStart(2, '0');
+        const s = String(now.getSeconds()).padStart(2, '0');
+        return `${h}-${m}-${s}`; // HH-MM-SS
+    }
+
+    // Initialisation des champs HTML (Doivent être au format ISO pour s'afficher correctement)
+    function resetDateInputs() {
         const now = new Date();
         document.getElementById('date').value = now.toISOString().split('T')[0];
-        document.getElementById('time').value = now.toTimeString().substring(0, 5);
+        document.getElementById('time').value = now.toTimeString().substring(0, 8); // hh:mm:ss
+    }
+
+    window.onload = function() {
+        resetDateInputs();
     };
 
     function switchView(viewId, title) {
@@ -192,10 +225,8 @@
         if(liveRefreshInterval) clearInterval(liveRefreshInterval);
         switchView('view-menu', 'TERMINAL CLOUD');
         document.getElementById('cri-form').reset();
-        const now = new Date();
-        document.getElementById('date').value = now.toISOString().split('T')[0];
-        document.getElementById('time').value = now.toTimeString().substring(0, 5);
-        currentChefDePoste = ""; // Réinitialise le chef de poste
+        resetDateInputs();
+        currentChefDePoste = ""; 
     }
 
     function openAgentMode() { switchView('view-agent', 'SAISIE MOBILE C.R.I'); }
@@ -204,43 +235,56 @@
         const pwd = prompt("Accès administrateur. Mot de passe :");
         if (pwd === ADMIN_PWD) {
             const nomChef = prompt("Veuillez saisir votre Nom (Chef de Poste) :");
-            if(!nomChef) return; // Annule si aucun nom n'est saisi
+            if(!nomChef) return; 
             
             currentChefDePoste = nomChef.toUpperCase();
             switchView('view-chef', 'SUPERVISION PCS - ' + currentChefDePoste);
             
-            // Enregistrement automatique de l'OUVERTURE
-            const now = new Date();
-            const d = now.toISOString().split('T')[0];
-            const t = now.toTimeString().substring(0, 5);
-            
+            // Enregistrement automatique de l'OUVERTURE avec les nouveaux formats
             const formData = new URLSearchParams();
             formData.append('action', 'add');
-            formData.append('date', d);
-            formData.append('heure', t);
+            formData.append('date', getFormattedDate());
+            formData.append('heure', getFormattedTime());
             formData.append('agent', "CHEF DE POSTE : " + currentChefDePoste);
             formData.append('nature', "OUVERTURE MAIN COURANTE");
             formData.append('description', "Prise de poste et ouverture du registre.");
 
             fetch(SCRIPT_URL, { method: 'POST', body: formData, mode: 'no-cors' })
             .then(() => {
-                fetchJournalData(); // Actualise l'affichage après l'ouverture
+                fetchJournalData(); 
             });
 
-            // Rafraîchissement automatique toutes les 5 secondes
             liveRefreshInterval = setInterval(fetchJournalData, 5000);
         } else if (pwd !== null) {
             alert("Accès refusé.");
         }
     }
 
+    // --- AJOUT D'UNE MENTION PAR LE CHEF DE POSTE ---
+    function ajouterMentionChef() {
+        const mention = prompt("Saisissez l'événement ou la mention à ajouter au journal :");
+        if (!mention) return;
+
+        // On bloque provisoirement le rafraichissement pour éviter un conflit visuel
+        clearInterval(liveRefreshInterval);
+
+        const formData = new URLSearchParams();
+        formData.append('action', 'add');
+        formData.append('date', getFormattedDate());
+        formData.append('heure', getFormattedTime());
+        formData.append('agent', "CHEF DE POSTE : " + currentChefDePoste);
+        formData.append('nature', "MENTION SPÉCIALE");
+        formData.append('description', mention);
+
+        fetch(SCRIPT_URL, { method: 'POST', body: formData, mode: 'no-cors' })
+        .then(() => {
+            fetchJournalData(); 
+            liveRefreshInterval = setInterval(fetchJournalData, 5000); // Relance
+        });
+    }
+
     // --- LECTURE DES DONNÉES DEPUIS GOOGLE SHEETS ---
     function fetchJournalData() {
-        if(!SCRIPT_URL.includes("script.google.com")) {
-            document.getElementById('journal-list').innerHTML = "<div style='color:#e74c3c; padding:20px;'>Erreur: L'URL du script Google n'est pas configurée dans le code.</div>";
-            return;
-        }
-
         fetch(SCRIPT_URL)
             .then(response => response.json())
             .then(data => {
@@ -252,8 +296,7 @@
                     return;
                 }
 
-                // Inverser pour avoir le plus récent en haut
-                data.reverse();
+                data.reverse(); // Le plus récent en haut
 
                 let html = "";
                 data.forEach(row => {
@@ -278,8 +321,8 @@
     function genererCRI() {
         const nomAgent = document.getElementById('nomAgent').value.toUpperCase();
         const poste = document.getElementById('poste').value;
-        const date = document.getElementById('date').value;
-        const time = document.getElementById('time').value;
+        const dateRaw = document.getElementById('date').value;
+        const timeRaw = document.getElementById('time').value;
         const lieu = document.getElementById('lieu').value;
         const nature = document.getElementById('nature').value;
         const description = document.getElementById('description').value;
@@ -287,6 +330,14 @@
         if(!nomAgent || !lieu || !nature || !description) {
             alert("Veuillez remplir tous les champs obligatoires."); return;
         }
+
+        // Conversion Date et Heure aux formats demandés (JJ-MM-AAAA et HH-MM-SS)
+        const dateParts = dateRaw.split('-');
+        const formattedDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
+        
+        let timeParts = timeRaw.split(':');
+        if(timeParts.length === 2) timeParts.push("00"); // Sécurité s'il manque les secondes
+        const formattedTime = `${timeParts[0]}-${timeParts[1]}-${timeParts[2]}`;
 
         let mesures = [];
         document.querySelectorAll('.checkbox-group input[type="checkbox"]:checked').forEach(cb => mesures.push("- " + cb.value));
@@ -298,8 +349,8 @@
 
         const formData = new URLSearchParams();
         formData.append('action', 'add');
-        formData.append('date', date);
-        formData.append('heure', time);
+        formData.append('date', formattedDate);
+        formData.append('heure', formattedTime);
         formData.append('agent', identiteComplete);
         formData.append('nature', nature);
         formData.append('description', resumeAction);
@@ -324,21 +375,57 @@
         returnToMenu();
     }
 
-    // --- FERMETURE, EXPORT ET RESET SERVEUR ---
+    // --- EXPORT PDF DE LA MAIN COURANTE (SANS LE NOM) ---
+    function exporterJournalPDF() {
+        if (localDataBackup.length === 0) { alert("Le registre est vide."); return; }
+        
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        // En-tête du document
+        doc.setFontSize(18);
+        doc.setTextColor(0, 75, 135); // Bleu institutionnel
+        doc.text("REGISTRE DE MAIN COURANTE", 14, 22);
+        
+        doc.setFontSize(11);
+        doc.setTextColor(100);
+        doc.text("Édité par : Chef de Poste " + currentChefDePoste, 14, 30);
+        doc.text("Date d'édition : " + getFormattedDate() + " à " + getFormattedTime().replace(/-/g, ':'), 14, 36);
+
+        // Préparation des données pour le tableau : Date, Heure, Nature, Description (Exclusion Agent)
+        let exportData = [...localDataBackup].reverse(); // Ordre chronologique pour la lecture
+        let tableData = [];
+        
+        exportData.forEach(row => {
+            tableData.push([row.date, row.heure, row.nature, row.description]);
+        });
+
+        // Génération du tableau
+        doc.autoTable({
+            startY: 45,
+            head: [['Date', 'Heure', 'Événement signalé', 'Compte rendu des faits']],
+            body: tableData,
+            theme: 'grid',
+            headStyles: { fillColor: [0, 75, 135] },
+            styles: { fontSize: 10, cellPadding: 3 },
+            columnStyles: {
+                0: { cellWidth: 25 },
+                1: { cellWidth: 22 },
+                2: { cellWidth: 40 },
+                3: { cellWidth: 'auto' }
+            }
+        });
+
+        doc.save("Main_Courante_Arago.pdf");
+    }
+
+    // --- FERMETURE, EXPORT CSV ET RESET SERVEUR ---
     function fermerEtExporterJournal() {
         if (localDataBackup.length === 0) { alert("Le registre est vide."); return; }
         
-        // Sécurité si variable vide
-        if (!currentChefDePoste) {
-            currentChefDePoste = prompt("Nom du Chef de Poste pour la fermeture :") || "INCONNU";
-            currentChefDePoste = currentChefDePoste.toUpperCase();
-        }
+        const d = getFormattedDate();
+        const t = getFormattedTime();
 
-        const now = new Date();
-        const d = now.toISOString().split('T')[0];
-        const t = now.toTimeString().substring(0, 5);
-
-        // 1. Enregistrement de la FERMETURE sur le serveur
         const formData = new URLSearchParams();
         formData.append('action', 'add');
         formData.append('date', d);
@@ -349,22 +436,15 @@
 
         fetch(SCRIPT_URL, { method: 'POST', body: formData, mode: 'no-cors' })
         .then(() => {
-            fetchJournalData(); // Met à jour l'affichage avec la ligne de fermeture
+            fetchJournalData(); 
         });
 
-        // 2. Ajout manuel dans les données locales pour que la ligne soit présente dans le CSV immédiat
-        localDataBackup.unshift({ // unshift car l'affichage est inversé
-            date: d,
-            heure: t,
-            agent: "CHEF DE POSTE : " + currentChefDePoste,
-            nature: "FERMETURE MAIN COURANTE",
-            description: "Fin de service et clôture du registre."
+        localDataBackup.unshift({
+            date: d, heure: t, agent: "CHEF DE POSTE : " + currentChefDePoste,
+            nature: "FERMETURE MAIN COURANTE", description: "Fin de service et clôture du registre."
         });
 
-        // 3. Génération du fichier CSV (L'édition)
         let csvContent = "data:text/csv;charset=utf-8,\uFEFFDate;Heure;Agent;Evénement signalé;Compte rendu\r\n";
-        
-        // On remet dans l'ordre chronologique pour le fichier Excel
         let exportData = [...localDataBackup].reverse(); 
         
         exportData.forEach(row => {
@@ -389,7 +469,7 @@
             fetch(SCRIPT_URL, { method: 'POST', body: formData, mode: 'no-cors' })
             .then(() => {
                 alert("Ordre de réinitialisation envoyé au serveur.");
-                fetchJournalData(); // Rafraîchit la vue
+                fetchJournalData(); 
             });
         }
     }
