@@ -101,21 +101,19 @@
         }
         .checkbox-group input[type="checkbox"] { width: auto; margin: 0; transform: scale(1.2); }
 
-        /* Style pour le bouton photo */
-        .btn-photo {
-            display: inline-block;
-            background: #34495e;
-            color: white;
-            text-align: center;
+        .info-box {
+            background: #fff3cd;
+            border: 1px dashed #f39c12;
             padding: 12px;
             border-radius: 6px;
-            font-size: 14px;
-            cursor: pointer;
-            width: 100%;
-            box-sizing: border-box;
-            margin-bottom: 5px;
+            margin-bottom: 15px;
         }
-        .btn-photo:active { background: #2c3e50; }
+        .info-box p {
+            font-size: 11px;
+            color: #8a6d3b;
+            margin: 0 0 8px 0;
+            line-height: 1.4;
+        }
 
         .btn { 
             background: #27ae60; 
@@ -199,7 +197,7 @@
                     <input type="date" id="date" required>
                 </div>
                 <div class="form-group">
-                    <label>Heure</label>
+                    <label>Heure des faits</label>
                     <input type="time" id="time" required>
                 </div>
             </div>
@@ -229,12 +227,14 @@
                 <textarea id="description" placeholder="À mon arrivée sur les lieux, j'ai constaté que..." required></textarea>
             </div>
 
-            <div class="section-title">Pièce Jointe</div>
-            <div class="form-group">
-                <label for="photo" class="btn-photo">📷 Prendre / Ajouter une photo</label>
-                <!-- capture="environment" ouvre directement l'appareil photo sur mobile -->
-                <input type="file" id="photo" accept="image/*" capture="environment" style="display:none;" onchange="updatePhotoStatus()">
-                <div id="photo-status" style="font-size: 12px; color: #27ae60; font-weight: bold; text-align: center;"></div>
+            <div class="section-title">Preuves et Photos</div>
+            <div class="info-box">
+                <p><strong>RAPPEL :</strong> Prenez vos photos avec l'application "Appareil Photo" normale de votre téléphone pour qu'elles s'enregistrent dans votre galerie. Vous devrez les ajouter manuellement dans l'application Mail à l'étape suivante.</p>
+                <div class="checkbox-group">
+                    <label style="border-color: #f39c12; font-weight: bold; color: #d35400;">
+                        <input type="checkbox" id="chk-photo"> 📷 Je confirme qu'une photo est à joindre.
+                    </label>
+                </div>
             </div>
 
             <div class="section-title">Mesures prises</div>
@@ -242,9 +242,9 @@
                 <div class="checkbox-group">
                     <label><input type="checkbox" value="Secours prévenus (15/18/112)"> Secours prévenus (15/18)</label>
                     <label><input type="checkbox" value="Forces de l'Ordre (FDO) prévenues (17)"> Forces de l'Ordre (FDO)</label>
-                    <label><input type="checkbox" value="Individu appréhendé (Art 73 CPP)"> Individu appréhendé</label>
+                    <label><input type="checkbox" value="Individu appréhendé (Art 73 CPP)"> Individu appréhendé (Art 73)</label>
                     <label><input type="checkbox" value="Palpation de sécurité effectuée"> Palpation de sécurité</label>
-                    <label><input type="checkbox" value="Moyen d'entrave utilisé (Art 803 CPP)"> Moyen d'entrave</label>
+                    <label><input type="checkbox" value="Moyen d'entrave utilisé (Art 803 CPP)"> Moyen d'entrave (Art 803)</label>
                     <label><input type="checkbox" value="Gel des lieux effectué"> Gel des lieux</label>
                 </div>
             </div>
@@ -285,13 +285,6 @@
         document.getElementById('time').value = now.toTimeString().substring(0, 5);
     };
 
-    function updatePhotoStatus() {
-        const file = document.getElementById('photo').files[0];
-        if(file) {
-            document.getElementById('photo-status').innerText = "✓ Photo enregistrée : " + file.name;
-        }
-    }
-
     function genererCRI() {
         const nomAgent = document.getElementById('nomAgent').value.toUpperCase();
         const poste = document.getElementById('poste').value;
@@ -306,25 +299,25 @@
             return;
         }
 
-        // Récupération des cases cochées
+        // Récupération des mesures cochées
         let mesures = [];
-        const checkboxes = document.querySelectorAll('.checkbox-group input[type="checkbox"]:checked');
+        const checkboxes = document.querySelectorAll('.checkbox-group input[type="checkbox"]:not(#chk-photo):checked');
         checkboxes.forEach((cb) => {
             mesures.push("- " + cb.value);
         });
         const mesuresText = mesures.length > 0 ? mesures.join('\n') : "Aucune mesure supplémentaire.";
 
-        // Vérification de la photo
-        const photoInput = document.getElementById('photo');
-        let emailPhotoMention = "Aucune photo jointe.";
-        let uiPhotoMention = "Pas de photo jointe.";
+        // Gestion de la photo
+        const hasPhoto = document.getElementById('chk-photo').checked;
+        let emailPhotoMention = "Aucune photo déclarée.";
+        let uiPhotoMention = "Pas de photo à joindre.";
         
-        if (photoInput.files && photoInput.files.length > 0) {
-            uiPhotoMention = "📷 Photo prise. N'oubliez pas de l'ajouter dans l'e-mail !";
-            emailPhotoMention = "⚠️ INFO FORMATEUR : L'élève a pris une photo. Elle doit être ajoutée MANUELLEMENT en pièce jointe à cet e-mail.";
+        if (hasPhoto) {
+            uiPhotoMention = "📷 N'oubliez pas de JOINDRE LA PHOTO dans l'e-mail qui va s'ouvrir !";
+            emailPhotoMention = "⚠️ INFO FORMATEUR : L'élève a déclaré avoir pris une photo. Vérifiez qu'elle est bien en pièce jointe de ce mail.";
         }
 
-        // Affichage écran
+        // Affichage écran (ticket récapitulatif)
         document.getElementById('out-agent').innerText = nomAgent;
         document.getElementById('out-poste').innerText = poste;
         document.getElementById('out-date').innerText = date;
@@ -337,7 +330,7 @@
 
         document.getElementById('ticket-modal').style.display = 'flex';
 
-        // Envoi Email
+        // Envoi Email (avec temporisation pour voir le message de rappel)
         const emailTo = "benoit.dol@monlycee.net";
         const emailSubject = encodeURIComponent(`C.R.I - ${nature} - Agent ${nomAgent}`);
         const emailBody = encodeURIComponent(`
@@ -365,17 +358,15 @@ ${emailPhotoMention}
 Rapport généré électroniquement via le Terminal C.R.I.
         `);
 
-        // Petite temporisation pour que l'élève voie le ticket avant l'ouverture de l'app mail
         setTimeout(() => {
             window.location.href = `mailto:${emailTo}?subject=${emailSubject}&body=${emailBody}`;
-        }, 800);
+        }, 1000); // Laisse 1 seconde pour lire le rappel photo
     }
 
     function fermerCRI() {
         document.getElementById('ticket-modal').style.display = 'none';
         document.getElementById('description').value = '';
-        document.getElementById('photo').value = '';
-        document.getElementById('photo-status').innerText = '';
+        document.getElementById('chk-photo').checked = false;
         const checkboxes = document.querySelectorAll('.checkbox-group input[type="checkbox"]');
         checkboxes.forEach((cb) => cb.checked = false);
     }
