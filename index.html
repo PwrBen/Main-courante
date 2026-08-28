@@ -3,167 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Terminal C.R.I - Arago Sécurité</title>
+    <title>Terminal PCS - Réseau Actif</title>
     <style>
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
-            background-color: #2c3e50; 
-            margin: 0; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            min-height: 100vh; 
-        }
-        .device { 
-            width: 100%; 
-            max-width: 420px; 
-            height: 100vh;
-            max-height: 850px;
-            background: #ecf0f1; 
-            display: flex; 
-            flex-direction: column; 
-            position: relative;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-        }
-        @media (min-width: 450px) {
-            .device { height: 850px; border-radius: 30px; border: 12px solid #1a252f; }
-        }
-        .header { 
-            background: #004b87; 
-            color: white; 
-            padding: 15px; 
-            text-align: center; 
-            font-weight: bold; 
-            font-size: 18px; 
-            letter-spacing: 1px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .header .status { font-size: 12px; color: #f1c40f; }
-        .screen { 
-            padding: 20px; 
-            overflow-y: auto; 
-            flex: 1; 
-        }
-        .section-title { 
-            font-size: 12px; 
-            color: #7f8c8d; 
-            text-transform: uppercase; 
-            font-weight: bold; 
-            margin: 15px 0 5px 0; 
-            border-bottom: 2px solid #bdc3c7; 
-            padding-bottom: 3px; 
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #2c3e50; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .device { width: 100%; max-width: 450px; height: 100vh; max-height: 850px; background: #ecf0f1; display: flex; flex-direction: column; position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        @media (min-width: 480px) { .device { height: 850px; border-radius: 30px; border: 12px solid #1a252f; } }
+        .header { background: #004b87; color: white; padding: 15px; text-align: center; font-weight: bold; font-size: 18px; letter-spacing: 1px; display: flex; justify-content: space-between; align-items: center; }
+        .header .status { font-size: 12px; color: #2ecc71; animation: blink 2s infinite;}
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        
+        .view { display: none; flex: 1; overflow-y: auto; padding: 20px; }
+        .view.active { display: block; }
+        
+        .menu-container { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; gap: 20px; }
+        .btn-menu { width: 100%; padding: 25px; font-size: 18px; font-weight: bold; border-radius: 12px; border: none; cursor: pointer; color: white; text-transform: uppercase; box-shadow: 0 5px 15px rgba(0,0,0,0.2); transition: 0.3s; }
+        .btn-menu:active { transform: translateY(3px); }
+        .btn-menu-agent { background: #27ae60; }
+        .btn-menu-chef { background: #2980b9; }
+
+        .section-title { font-size: 12px; color: #7f8c8d; text-transform: uppercase; font-weight: bold; margin: 15px 0 5px 0; border-bottom: 2px solid #bdc3c7; padding-bottom: 3px; }
         .form-group { margin-bottom: 12px; }
-        label { 
-            display: block; 
-            font-size: 12px; 
-            font-weight: bold; 
-            margin-bottom: 4px; 
-            color: #34495e; 
-        }
-        input, select, textarea { 
-            width: 100%; 
-            padding: 12px; 
-            border: 1px solid #ccc; 
-            border-radius: 6px; 
-            font-size: 15px; 
-            box-sizing: border-box; 
-            background: white;
-            font-family: inherit;
-        }
+        label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 4px; color: #34495e; }
+        input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; box-sizing: border-box; background: white; font-family: inherit; }
         textarea { resize: vertical; min-height: 100px; }
-        input:focus, select:focus, textarea:focus { 
-            border-color: #004b87; 
-            outline: none; 
-            box-shadow: 0 0 5px rgba(0,75,135,0.3);
-        }
+        input:focus, select:focus, textarea:focus { border-color: #004b87; outline: none; box-shadow: 0 0 5px rgba(0,75,135,0.3); }
         .row { display: flex; gap: 10px; }
         .row > div { flex: 1; }
         
-        .checkbox-group {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-top: 5px;
-        }
-        .checkbox-group label {
-            background: #fff;
-            border: 1px solid #ccc;
-            padding: 10px 12px;
-            border-radius: 8px;
-            font-weight: normal;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
+        .checkbox-group { display: flex; flex-direction: column; gap: 10px; margin-top: 5px; }
+        .checkbox-group label { background: #fff; border: 1px solid #ccc; padding: 10px 12px; border-radius: 8px; font-weight: normal; cursor: pointer; display: flex; align-items: center; gap: 8px; }
         .checkbox-group input[type="checkbox"] { width: auto; margin: 0; transform: scale(1.2); }
 
-        .info-box {
-            background: #fff3cd;
-            border: 1px dashed #f39c12;
-            padding: 12px;
-            border-radius: 6px;
-            margin-bottom: 15px;
-        }
-        .info-box p {
-            font-size: 11px;
-            color: #8a6d3b;
-            margin: 0 0 8px 0;
-            line-height: 1.4;
-        }
+        .btn { background: #27ae60; color: white; border: none; width: 100%; padding: 16px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; text-transform: uppercase; margin-top: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .btn-return { background: #7f8c8d; margin-top: 10px; }
+        .btn-export { background: #2980b9; font-size: 14px; margin-top: 10px; padding: 12px; }
+        .btn-reset { background: #c0392b; font-size: 14px; margin-top: 10px; padding: 12px; }
 
-        .btn { 
-            background: #27ae60; 
-            color: white; 
-            border: none; 
-            width: 100%; 
-            padding: 16px; 
-            font-size: 16px; 
-            font-weight: bold; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            text-transform: uppercase; 
-            margin-top: 20px; 
-            box-shadow: 0 4px 6px rgba(39, 174, 96, 0.3);
-            transition: 0.2s;
-        }
-        .btn:active { transform: translateY(2px); box-shadow: 0 2px 3px rgba(39, 174, 96, 0.3); }
+        /* Tableau Main Courante Serveur */
+        .journal-container { background: white; border-radius: 8px; padding: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-height: 400px; overflow-y: auto; margin-bottom: 15px; position: relative;}
+        .journal-item { border-bottom: 1px solid #eee; padding: 10px 0; animation: fadeIn 0.5s;}
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .journal-item:last-child { border-bottom: none; }
+        .j-header { display: flex; justify-content: space-between; font-size: 11px; color: #7f8c8d; margin-bottom: 4px; font-weight: bold;}
+        .j-agent { color: #2980b9; font-weight: bold; font-size: 13px;}
+        .j-nature { font-size: 13px; font-weight: bold; margin: 2px 0; color: #c0392b;}
+        .j-desc { font-size: 12px; color: #34495e; line-height: 1.4; }
 
-        .modal { 
-            display: none; 
-            position: absolute; 
-            top: 0; left: 0; 
-            width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.85); 
-            flex-direction: column; 
-            justify-content: center; 
-            align-items: center; 
-            z-index: 100; 
-            padding: 20px; 
-            box-sizing: border-box; 
-            border-radius: inherit;
-        }
-        .receipt { 
-            background: #fff; 
-            padding: 20px; 
-            width: 100%; 
-            max-width: 340px; 
-            box-sizing: border-box; 
-            font-family: 'Courier New', Courier, monospace; 
-            font-size: 13px; 
-            box-shadow: 0 5px 15px rgba(0,0,0,0.5); 
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-        .receipt-header { 
-            text-align: center; 
-            border-bottom: 2px solid #333; 
-            padding-bottom: 10px; 
-            margin-bottom: 15px; 
-        }
+        .loader { text-align: center; font-size: 14px; color: #3498db; padding: 20px; font-weight: bold;}
+        .overlay { display: none; position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(255,255,255,0.8); z-index: 10; justify-content: center; align-items: center; font-weight: bold; color: #2c3e50;}
+
+        .modal { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); flex-direction: column; justify-content: center; align-items: center; z-index: 100; padding: 20px; box-sizing: border-box; border-radius: inherit; }
+        .receipt { background: #fff; padding: 20px; width: 100%; max-width: 340px; box-sizing: border-box; font-family: 'Courier New', Courier, monospace; font-size: 13px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); max-height: 80vh; overflow-y: auto; }
+        .receipt-header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 15px; }
         .receipt-body div { margin-bottom: 6px; }
         .btn-close { background: #e74c3c; margin-top: 15px; width: 80%; }
     </style>
@@ -172,119 +63,194 @@
 
 <div class="device">
     <div class="header">
-        <span>MAIN COURANTE ÉLECTRONIQUE</span>
-        <span class="status">● SAISIE C.R.I</span>
+        <span id="app-title">TERMINAL CLOUD</span>
+        <span class="status" id="app-status">● CONNECTÉ</span>
     </div>
     
-    <div class="screen">
+    <!-- MENU DE SÉLECTION -->
+    <div id="view-menu" class="view active">
+        <div class="menu-container">
+            <h2 style="color: #2c3e50; text-align: center; margin-bottom: 30px;">IDENTIFICATION RÉSEAU</h2>
+            <button class="btn-menu btn-menu-agent" onclick="openAgentMode()">🛡️ POSTE AGENT (Terrain)<br><span style="font-size:12px; font-weight:normal;">Saisie Mobile C.R.I</span></button>
+            <button class="btn-menu btn-menu-chef" onclick="openChefMode()">🖥️ CHEF DE POSTE (PCS)<br><span style="font-size:12px; font-weight:normal;">Supervision en direct</span></button>
+        </div>
+    </div>
+
+    <!-- MODE AGENT (Saisie C.R.I) -->
+    <div id="view-agent" class="view">
+        <div id="loading-overlay" class="overlay">Transmission sécurisée en cours...</div>
         <form id="cri-form">
             <div class="section-title">Agent Rédacteur</div>
             <div class="row">
-                <div class="form-group">
-                    <label>Nom de l'agent</label>
-                    <input type="text" id="nomAgent" placeholder="Ex: DUPONT" style="text-transform: uppercase;" required>
-                </div>
-                <div class="form-group">
-                    <label>Poste / Indicatif</label>
-                    <input type="text" id="poste" placeholder="Ex: Accueil, Alpha..." required>
-                </div>
+                <div class="form-group"><label>Nom</label><input type="text" id="nomAgent" style="text-transform: uppercase;" required></div>
+                <div class="form-group"><label>Indicatif</label><input type="text" id="poste" required></div>
             </div>
 
-            <div class="section-title">L'Événement (Quand & Où)</div>
+            <div class="section-title">L'Événement</div>
             <div class="row">
-                <div class="form-group">
-                    <label>Date</label>
-                    <input type="date" id="date" required>
-                </div>
-                <div class="form-group">
-                    <label>Heure des faits</label>
-                    <input type="time" id="time" required>
-                </div>
+                <div class="form-group"><label>Date</label><input type="date" id="date" required></div>
+                <div class="form-group"><label>Heure</label><input type="time" id="time" required></div>
             </div>
             <div class="form-group">
-                <label>Lieu exact de l'incident</label>
-                <input type="text" id="lieu" placeholder="Ex: Parking Nord, Porte C3..." required>
+                <label>Lieu exact</label>
+                <input type="text" id="lieu" required>
             </div>
 
-            <div class="section-title">Nature des faits (Quoi)</div>
+            <div class="section-title">Nature des faits</div>
             <div class="form-group">
                 <select id="nature" required>
                     <option value="" disabled selected>-- Sélectionner la nature --</option>
-                    <option value="Secours à Personne (Malaise, Blessure)">Secours à Personne (Malaise, Blessure)</option>
-                    <option value="Vol / Tentative de vol (Flagrance)">Vol / Tentative de vol (Flagrance)</option>
+                    <option value="Secours à Personne">Secours à Personne</option>
+                    <option value="Vol / Tentative (Flagrance)">Vol / Tentative de vol</option>
                     <option value="Dégradation / Vandalisme">Dégradation / Vandalisme</option>
                     <option value="Intrusion / Effraction">Intrusion / Effraction</option>
-                    <option value="Agression / Altercation physique">Agression / Altercation physique</option>
-                    <option value="Outrage / Insultes">Outrage / Insultes envers l'agent</option>
-                    <option value="Départ de Feu / Alarme Incendie">Départ de Feu / Alarme Incendie</option>
-                    <option value="Autre incident technique">Autre incident technique</option>
+                    <option value="Agression / Altercation">Agression / Altercation</option>
+                    <option value="Outrage / Insultes">Outrage / Insultes</option>
+                    <option value="Départ de Feu / Alarme">Départ de Feu / Alarme Incendie</option>
+                    <option value="Anomalie technique">Autre incident technique</option>
                 </select>
             </div>
 
-            <div class="section-title">Description (Comment & Pourquoi)</div>
+            <div class="section-title">Description</div>
             <div class="form-group">
-                <label>Relation détaillée des faits (Soyez factuel)</label>
-                <textarea id="description" placeholder="À mon arrivée sur les lieux, j'ai constaté que..." required></textarea>
-            </div>
-
-            <div class="section-title">Preuves et Photos</div>
-            <div class="info-box">
-                <p><strong>RAPPEL :</strong> Prenez vos photos avec l'application "Appareil Photo" normale de votre téléphone pour qu'elles s'enregistrent dans votre galerie. Vous devrez les ajouter manuellement dans l'application Mail à l'étape suivante.</p>
-                <div class="checkbox-group">
-                    <label style="border-color: #f39c12; font-weight: bold; color: #d35400;">
-                        <input type="checkbox" id="chk-photo"> 📷 Je confirme qu'une photo est à joindre.
-                    </label>
-                </div>
+                <textarea id="description" required></textarea>
             </div>
 
             <div class="section-title">Mesures prises</div>
             <div class="form-group">
                 <div class="checkbox-group">
-                    <label><input type="checkbox" value="Secours prévenus (15/18/112)"> Secours prévenus (15/18)</label>
-                    <label><input type="checkbox" value="Forces de l'Ordre (FDO) prévenues (17)"> Forces de l'Ordre (FDO)</label>
-                    <label><input type="checkbox" value="Individu appréhendé (Art 73 CPP)"> Individu appréhendé (Art 73)</label>
-                    <label><input type="checkbox" value="Palpation de sécurité effectuée"> Palpation de sécurité</label>
-                    <label><input type="checkbox" value="Moyen d'entrave utilisé (Art 803 CPP)"> Moyen d'entrave (Art 803)</label>
+                    <label><input type="checkbox" value="Secours prévenus"> Secours (15/18)</label>
+                    <label><input type="checkbox" value="FDO prévenues"> FDO (17)</label>
+                    <label><input type="checkbox" value="Individu appréhendé (Art 73)"> Appréhension (Art 73)</label>
+                    <label><input type="checkbox" value="Palpation de sécurité"> Palpation de sécurité</label>
+                    <label><input type="checkbox" value="Moyen d'entrave (Art 803)"> Entrave (Art 803)</label>
                     <label><input type="checkbox" value="Gel des lieux effectué"> Gel des lieux</label>
                 </div>
             </div>
 
-            <button type="button" class="btn" onclick="genererCRI()">Transmettre le C.R.I</button>
+            <button type="button" class="btn" onclick="genererCRI()">Valider et Transmettre au Serveur</button>
+            <button type="button" class="btn btn-return" onclick="returnToMenu()">Retour au menu</button>
         </form>
     </div>
 
-    <!-- Modal Récapitulatif -->
+    <!-- MODE CHEF DE POSTE (Main Courante) -->
+    <div id="view-chef" class="view">
+        <div class="section-title" style="color: #2980b9; display: flex; justify-content: space-between;">
+            <span>REGISTRE CLOUD</span>
+            <span style="color: #2ecc71;">Actualisation auto (5s)</span>
+        </div>
+        
+        <div class="journal-container" id="journal-list">
+            <div class="loader">Connexion à la base de données Google Sheets...</div>
+        </div>
+
+        <button type="button" class="btn btn-export" onclick="exporterJournal()">📥 Extraire la Main Courante (CSV)</button>
+        <button type="button" class="btn btn-reset" onclick="resetJournal()">🗑️ Remise à Zéro du Registre (Serveur)</button>
+        <button type="button" class="btn btn-return" onclick="returnToMenu()">Retour au menu</button>
+    </div>
+
+    <!-- Modal Récapitulatif (Ticket) -->
     <div class="modal" id="ticket-modal">
         <div class="receipt">
             <div class="receipt-header">
-                <h3 style="margin: 0;">COMPTE RENDU D'INCIDENT</h3>
-                <span>LYCÉE FRANÇOIS ARAGO</span>
+                <h3 style="margin: 0; color: #27ae60;">TRANSMISSION RÉUSSIE</h3>
+                <span>Enregistré dans le Cloud</span>
             </div>
-            <div class="receipt-body">
-                <div><strong>AGENT :</strong> <span id="out-agent"></span> (<span id="out-poste"></span>)</div>
-                <hr style="border: 0; border-top: 1px solid #ccc; margin: 10px 0;">
-                <div><strong>DATE :</strong> <span id="out-date"></span> à <span id="out-time"></span></div>
-                <div><strong>LIEU :</strong> <span id="out-lieu"></span></div>
-                <div><strong>NATURE :</strong> <span id="out-nature"></span></div>
-                <hr style="border: 0; border-top: 1px solid #ccc; margin: 10px 0;">
-                <div><strong>DESCRIPTION :</strong><br><span id="out-desc" style="white-space: pre-wrap;"></span></div>
-                <hr style="border: 0; border-top: 1px solid #ccc; margin: 10px 0;">
-                <div><strong>MESURES PRISES :</strong><br><span id="out-mesures"></span></div>
-                <hr style="border: 0; border-top: 1px solid #ccc; margin: 10px 0;">
-                <div id="out-photo-status" style="font-weight: bold; color: #c0392b; text-align: center;"></div>
+            <div class="receipt-body" style="text-align: center; margin-top: 20px;">
+                <div style="font-size: 50px; margin-bottom: 20px;">✅</div>
+                <p>Le Chef de Poste a reçu votre rapport en direct sur la Main Courante électronique.</p>
             </div>
         </div>
-        <button class="btn btn-close" onclick="fermerCRI()">Fermer</button>
+        <button class="btn btn-close" onclick="fermerCRI()">Fermer et Reprendre la Ronde</button>
     </div>
 </div>
 
 <script>
+    // =========================================================================
+    // URL DU SCRIPT GOOGLE APPS SCRIPT
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbznqxTA4xF3jid7mZp333niHbzVA5YXVaFGFuJFry3yeie03eaLvzg6FIPX5N9aASeZ/exec";
+    // =========================================================================
+
+    const ADMIN_PWD = "@main courante";
+    let liveRefreshInterval = null;
+    let localDataBackup = []; // Pour l'export CSV
+
     window.onload = function() {
         const now = new Date();
         document.getElementById('date').value = now.toISOString().split('T')[0];
         document.getElementById('time').value = now.toTimeString().substring(0, 5);
     };
 
+    function switchView(viewId, title) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById(viewId).classList.add('active');
+        document.getElementById('app-title').innerText = title;
+    }
+
+    function returnToMenu() {
+        if(liveRefreshInterval) clearInterval(liveRefreshInterval);
+        switchView('view-menu', 'TERMINAL CLOUD');
+        document.getElementById('cri-form').reset();
+        const now = new Date();
+        document.getElementById('date').value = now.toISOString().split('T')[0];
+        document.getElementById('time').value = now.toTimeString().substring(0, 5);
+    }
+
+    function openAgentMode() { switchView('view-agent', 'SAISIE MOBILE C.R.I'); }
+
+    function openChefMode() {
+        const pwd = prompt("Accès administrateur. Mot de passe :");
+        if (pwd === ADMIN_PWD) {
+            switchView('view-chef', 'SUPERVISION PCS (LIVE)');
+            fetchJournalData();
+            // Rafraîchissement automatique toutes les 5 secondes
+            liveRefreshInterval = setInterval(fetchJournalData, 5000);
+        } else if (pwd !== null) {
+            alert("Accès refusé.");
+        }
+    }
+
+    // --- LECTURE DES DONNÉES DEPUIS GOOGLE SHEETS ---
+    function fetchJournalData() {
+        if(!SCRIPT_URL.includes("script.google.com")) {
+            document.getElementById('journal-list').innerHTML = "<div style='color:#e74c3c; padding:20px;'>Erreur: L'URL du script Google n'est pas configurée dans le code.</div>";
+            return;
+        }
+
+        fetch(SCRIPT_URL)
+            .then(response => response.json())
+            .then(data => {
+                localDataBackup = data;
+                const container = document.getElementById('journal-list');
+                
+                if (data.length === 0) {
+                    container.innerHTML = "<div style='text-align:center; padding:20px; color:#7f8c8d;'>Aucun événement signalé pour l'instant.</div>";
+                    return;
+                }
+
+                // Inverser pour avoir le plus récent en haut
+                data.reverse();
+
+                let html = "";
+                data.forEach(row => {
+                    html += `
+                    <div class="journal-item">
+                        <div class="j-header">
+                            <span>${row.date} à ${row.heure}</span>
+                            <span class="j-agent">${row.agent}</span>
+                        </div>
+                        <div class="j-nature">${row.nature}</div>
+                        <div class="j-desc">${row.description}</div>
+                    </div>`;
+                });
+                container.innerHTML = html;
+            })
+            .catch(error => {
+                console.error("Erreur de connexion", error);
+            });
+    }
+
+    // --- ENVOI DES DONNÉES VERS GOOGLE SHEETS ---
     function genererCRI() {
         const nomAgent = document.getElementById('nomAgent').value.toUpperCase();
         const poste = document.getElementById('poste').value;
@@ -295,80 +261,76 @@
         const description = document.getElementById('description').value;
 
         if(!nomAgent || !lieu || !nature || !description) {
-            alert("Veuillez remplir tous les champs obligatoires (Agent, Lieu, Nature, Description).");
-            return;
+            alert("Veuillez remplir tous les champs obligatoires."); return;
         }
 
-        // Récupération des mesures cochées
         let mesures = [];
-        const checkboxes = document.querySelectorAll('.checkbox-group input[type="checkbox"]:not(#chk-photo):checked');
-        checkboxes.forEach((cb) => {
-            mesures.push("- " + cb.value);
-        });
-        const mesuresText = mesures.length > 0 ? mesures.join('\n') : "Aucune mesure supplémentaire.";
-
-        // Gestion de la photo
-        const hasPhoto = document.getElementById('chk-photo').checked;
-        let emailPhotoMention = "Aucune photo déclarée.";
-        let uiPhotoMention = "Pas de photo à joindre.";
+        document.querySelectorAll('.checkbox-group input[type="checkbox"]:checked').forEach(cb => mesures.push("- " + cb.value));
         
-        if (hasPhoto) {
-            uiPhotoMention = "📷 N'oubliez pas de JOINDRE LA PHOTO dans l'e-mail qui va s'ouvrir !";
-            emailPhotoMention = "⚠️ INFO FORMATEUR : L'élève a déclaré avoir pris une photo. Vérifiez qu'elle est bien en pièce jointe de ce mail.";
-        }
+        const identiteComplete = nomAgent + " (" + poste + ")";
+        const resumeAction = "Lieu: " + lieu + " | " + description + (mesures.length > 0 ? " | Mesures : " + mesures.join(", ") : "");
 
-        // Affichage écran (ticket récapitulatif)
-        document.getElementById('out-agent').innerText = nomAgent;
-        document.getElementById('out-poste').innerText = poste;
-        document.getElementById('out-date').innerText = date;
-        document.getElementById('out-time').innerText = time;
-        document.getElementById('out-lieu').innerText = lieu;
-        document.getElementById('out-nature').innerText = nature;
-        document.getElementById('out-desc').innerText = description;
-        document.getElementById('out-mesures').innerText = mesuresText;
-        document.getElementById('out-photo-status').innerText = uiPhotoMention;
+        document.getElementById('loading-overlay').style.display = 'flex';
 
-        document.getElementById('ticket-modal').style.display = 'flex';
+        // Format de données pour éviter le blocage CORS
+        const formData = new URLSearchParams();
+        formData.append('action', 'add');
+        formData.append('date', date);
+        formData.append('heure', time);
+        formData.append('agent', identiteComplete);
+        formData.append('nature', nature);
+        formData.append('description', resumeAction);
 
-        // Envoi Email (avec temporisation pour voir le message de rappel)
-        const emailTo = "benoit.dol@monlycee.net";
-        const emailSubject = encodeURIComponent(`C.R.I - ${nature} - Agent ${nomAgent}`);
-        const emailBody = encodeURIComponent(`
-COMPTE RENDU D'INCIDENT - LYCÉE FRANÇOIS ARAGO
-
-[ AGENT RÉDACTEUR ]
-Nom : ${nomAgent}
-Poste / Indicatif : ${poste}
-
-[ FAITS ]
-Date et Heure : Le ${date} à ${time}
-Lieu : ${lieu}
-Nature de l'incident : ${nature}
-
-[ DESCRIPTION DÉTAILLÉE ]
-${description}
-
-[ MESURES CONSERVATOIRES ET SUITES ]
-${mesuresText}
-
-[ PIÈCE JOINTE ]
-${emailPhotoMention}
-
---------------------------------------------------
-Rapport généré électroniquement via le Terminal C.R.I.
-        `);
-
-        setTimeout(() => {
-            window.location.href = `mailto:${emailTo}?subject=${emailSubject}&body=${emailBody}`;
-        }, 1000); // Laisse 1 seconde pour lire le rappel photo
+        fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: formData,
+            mode: 'no-cors' // Crucial pour que Google accepte la requête depuis GitHub
+        })
+        .then(() => {
+            document.getElementById('loading-overlay').style.display = 'none';
+            document.getElementById('ticket-modal').style.display = 'flex';
+        })
+        .catch(error => {
+            document.getElementById('loading-overlay').style.display = 'none';
+            alert("Erreur réseau. Impossible de joindre le serveur.");
+        });
     }
 
     function fermerCRI() {
         document.getElementById('ticket-modal').style.display = 'none';
-        document.getElementById('description').value = '';
-        document.getElementById('chk-photo').checked = false;
-        const checkboxes = document.querySelectorAll('.checkbox-group input[type="checkbox"]');
-        checkboxes.forEach((cb) => cb.checked = false);
+        returnToMenu();
+    }
+
+    // --- EXPORT ET RESET SERVEUR ---
+    function exporterJournal() {
+        if (localDataBackup.length === 0) { alert("Le registre est vide."); return; }
+
+        let csvContent = "data:text/csv;charset=utf-8,\uFEFFDate;Heure;Agent;Evénement signalé;Compte rendu\r\n";
+        localDataBackup.forEach(row => {
+            let cleanAgent = row.agent.replace(/;/g, ",");
+            let cleanNature = row.nature.replace(/;/g, ",");
+            let cleanCR = row.description.replace(/(\r\n|\n|\r)/gm, " ").replace(/;/g, ",");
+            csvContent += `${row.date};${row.heure};${cleanAgent};${cleanNature};${cleanCR}\r\n`;
+        });
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "Main_Courante_Serveur_Arago.csv");
+        document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    }
+
+    function resetJournal() {
+        if (confirm("ATTENTION : Cette action va effacer définitivement le Google Sheets du serveur. Confirmer ?")) {
+            const formData = new URLSearchParams();
+            formData.append('action', 'reset');
+
+            fetch(SCRIPT_URL, { method: 'POST', body: formData, mode: 'no-cors' })
+            .then(() => {
+                alert("Ordre de réinitialisation envoyé au serveur.");
+                fetchJournalData(); // Rafraîchit la vue
+            });
+        }
     }
 </script>
 
