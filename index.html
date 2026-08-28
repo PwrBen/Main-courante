@@ -144,7 +144,7 @@
             <div class="loader">Connexion à la base de données Google Sheets...</div>
         </div>
 
-        <button type="button" class="btn btn-export" onclick="exporterJournal()">📥 Extraire la Main Courante (CSV)</button>
+        <button type="button" class="btn btn-export" onclick="fermerEtExporterJournal()">📥 Fermer la main courante et l'éditer</button>
         <button type="button" class="btn btn-reset" onclick="resetJournal()">🗑️ Remise à Zéro du Registre (Serveur)</button>
         <button type="button" class="btn btn-return" onclick="returnToMenu()">Retour au menu</button>
     </div>
@@ -174,6 +174,7 @@
     const ADMIN_PWD = "@main courante";
     let liveRefreshInterval = null;
     let localDataBackup = []; // Pour l'export CSV
+    let currentChefDePoste = ""; // Stocke le nom du Chef de Poste
 
     window.onload = function() {
         const now = new Date();
@@ -194,6 +195,7 @@
         const now = new Date();
         document.getElementById('date').value = now.toISOString().split('T')[0];
         document.getElementById('time').value = now.toTimeString().substring(0, 5);
+        currentChefDePoste = ""; // Réinitialise le chef de poste
     }
 
     function openAgentMode() { switchView('view-agent', 'SAISIE MOBILE C.R.I'); }
@@ -201,8 +203,30 @@
     function openChefMode() {
         const pwd = prompt("Accès administrateur. Mot de passe :");
         if (pwd === ADMIN_PWD) {
-            switchView('view-chef', 'SUPERVISION PCS (LIVE)');
-            fetchJournalData();
+            const nomChef = prompt("Veuillez saisir votre Nom (Chef de Poste) :");
+            if(!nomChef) return; // Annule si aucun nom n'est saisi
+            
+            currentChefDePoste = nomChef.toUpperCase();
+            switchView('view-chef', 'SUPERVISION PCS - ' + currentChefDePoste);
+            
+            // Enregistrement automatique de l'OUVERTURE
+            const now = new Date();
+            const d = now.toISOString().split('T')[0];
+            const t = now.toTimeString().substring(0, 5);
+            
+            const formData = new URLSearchParams();
+            formData.append('action', 'add');
+            formData.append('date', d);
+            formData.append('heure', t);
+            formData.append('agent', "CHEF DE POSTE : " + currentChefDePoste);
+            formData.append('nature', "OUVERTURE MAIN COURANTE");
+            formData.append('description', "Prise de poste et ouverture du registre.");
+
+            fetch(SCRIPT_URL, { method: 'POST', body: formData, mode: 'no-cors' })
+            .then(() => {
+                fetchJournalData(); // Actualise l'affichage après l'ouverture
+            });
+
             // Rafraîchissement automatique toutes les 5 secondes
             liveRefreshInterval = setInterval(fetchJournalData, 5000);
         } else if (pwd !== null) {
@@ -250,7 +274,7 @@
             });
     }
 
-    // --- ENVOI DES DONNÉES VERS GOOGLE SHEETS ---
+    // --- ENVOI DES DONNÉES VERS GOOGLE SHEETS (Agent) ---
     function genererCRI() {
         const nomAgent = document.getElementById('nomAgent').value.toUpperCase();
         const poste = document.getElementById('poste').value;
@@ -272,7 +296,6 @@
 
         document.getElementById('loading-overlay').style.display = 'flex';
 
-        // Format de données pour éviter le blocage CORS
         const formData = new URLSearchParams();
         formData.append('action', 'add');
         formData.append('date', date);
@@ -284,7 +307,7 @@
         fetch(SCRIPT_URL, {
             method: 'POST',
             body: formData,
-            mode: 'no-cors' // Crucial pour que Google accepte la requête depuis GitHub
+            mode: 'no-cors'
         })
         .then(() => {
             document.getElementById('loading-overlay').style.display = 'none';
@@ -301,12 +324,50 @@
         returnToMenu();
     }
 
-    // --- EXPORT ET RESET SERVEUR ---
-    function exporterJournal() {
+    // --- FERMETURE, EXPORT ET RESET SERVEUR ---
+    function fermerEtExporterJournal() {
         if (localDataBackup.length === 0) { alert("Le registre est vide."); return; }
+        
+        // Sécurité si variable vide
+        if (!currentChefDePoste) {
+            currentChefDePoste = prompt("Nom du Chef de Poste pour la fermeture :") || "INCONNU";
+            currentChefDePoste = currentChefDePoste.toUpperCase();
+        }
 
+        const now = new Date();
+        const d = now.toISOString().split('T')[0];
+        const t = now.toTimeString().substring(0, 5);
+
+        // 1. Enregistrement de la FERMETURE sur le serveur
+        const formData = new URLSearchParams();
+        formData.append('action', 'add');
+        formData.append('date', d);
+        formData.append('heure', t);
+        formData.append('agent', "CHEF DE POSTE : " + currentChefDePoste);
+        formData.append('nature', "FERMETURE MAIN COURANTE");
+        formData.append('description', "Fin de service et clôture du registre.");
+
+        fetch(SCRIPT_URL, { method: 'POST', body: formData, mode: 'no-cors' })
+        .then(() => {
+            fetchJournalData(); // Met à jour l'affichage avec la ligne de fermeture
+        });
+
+        // 2. Ajout manuel dans les données locales pour que la ligne soit présente dans le CSV immédiat
+        localDataBackup.unshift({ // unshift car l'affichage est inversé
+            date: d,
+            heure: t,
+            agent: "CHEF DE POSTE : " + currentChefDePoste,
+            nature: "FERMETURE MAIN COURANTE",
+            description: "Fin de service et clôture du registre."
+        });
+
+        // 3. Génération du fichier CSV (L'édition)
         let csvContent = "data:text/csv;charset=utf-8,\uFEFFDate;Heure;Agent;Evénement signalé;Compte rendu\r\n";
-        localDataBackup.forEach(row => {
+        
+        // On remet dans l'ordre chronologique pour le fichier Excel
+        let exportData = [...localDataBackup].reverse(); 
+        
+        exportData.forEach(row => {
             let cleanAgent = row.agent.replace(/;/g, ",");
             let cleanNature = row.nature.replace(/;/g, ",");
             let cleanCR = row.description.replace(/(\r\n|\n|\r)/gm, " ").replace(/;/g, ",");
@@ -316,7 +377,7 @@
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
-        link.setAttribute("download", "Main_Courante_Serveur_Arago.csv");
+        link.setAttribute("download", "Main_Courante_Editee_Arago.csv");
         document.body.appendChild(link); link.click(); document.body.removeChild(link);
     }
 
