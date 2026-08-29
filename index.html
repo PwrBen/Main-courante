@@ -227,7 +227,7 @@
         
         .btn-open-mc { background: #16a085; }
         .btn-mention { background: #f39c12; }
-        .btn-chef-cri { background: #8e44ad; } /* Nouveau bouton Signalement Chef */
+        .btn-chef-cri { background: #8e44ad; }
         .btn-close-mc { background: #d35400; }
         .btn-pdf { background: #9b59b6; }
         .btn-export { background: #2980b9; }
@@ -284,6 +284,15 @@
         .j-nature { font-size: 13px; font-weight: bold; color: #c0392b;}
         .j-desc { font-size: 13px; color: #34495e; line-height: 1.4; }
 
+        /* Mise en valeur rouge pour les C.R.I */
+        .journal-item.is-cri .j-date,
+        .journal-item.is-cri .j-time,
+        .journal-item.is-cri .j-agent,
+        .journal-item.is-cri .j-nature,
+        .journal-item.is-cri .j-desc {
+            color: #c0392b !important;
+        }
+
         /* --- UTILITAIRES ET MODALS --- */
         .loader { text-align: center; font-size: 14px; color: #3498db; padding: 30px; font-weight: bold;}
         .overlay { 
@@ -319,14 +328,14 @@
 
 <div class="device" id="main-device">
     <div class="header">
-        <span id="app-title">@BDOL</span>
+        <span id="app-title">TERMINAL CLOUD</span>
         <span class="status" id="app-status">● CONNECTÉ</span>
     </div>
     
     <!-- MENU DE SÉLECTION PRINCIPAL -->
     <div id="view-menu" class="view active">
         <div class="menu-container">
-            <h2 style="color: #2c3e50; text-align: center; margin-bottom: 30px;">ARAGO SÉCURITÉ</h2>
+            <h2 style="color: #2c3e50; text-align: center; margin-bottom: 30px;">IDENTIFICATION RÉSEAU</h2>
             <button class="btn-menu btn-menu-agent" onclick="switchView('view-agent-menu', 'POSTE AGENT')">🛡️ POSTE AGENT (Terrain)</button>
             <button class="btn-menu btn-menu-chef" onclick="openChefMode()">🖥️ CHEF DE POSTE (PCS)</button>
         </div>
@@ -432,7 +441,6 @@
 
     <!-- MODE CHEF DE POSTE (Signalement C.R.I) -->
     <div id="view-chef-cri" class="view">
-        <!-- Formulaire centré et limité en largeur pour grand écran -->
         <div style="width: 100%; max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
             <div id="loading-overlay-chef-cri" class="overlay">Transmission sécurisée en cours...</div>
             <form id="chef-cri-form">
@@ -547,6 +555,17 @@
     let currentChefDePoste = ""; 
     let previousDataLength = 0; 
     let currentRondeAction = "";
+
+    // Liste des actions de routine (tout ce qui n'est pas un CRI)
+    const SYSTEM_ACTIONS = [
+        "OUVERTURE MAIN COURANTE", 
+        "FERMETURE MAIN COURANTE", 
+        "MENTION SPÉCIALE", 
+        "DÉPART EN RONDE", 
+        "INTERRUPTION DE RONDE", 
+        "REPRISE DE RONDE", 
+        "FIN DE RONDE"
+    ];
 
     function getParisDate() {
         const str = new Date().toLocaleString("en-US", { timeZone: "Europe/Paris" });
@@ -770,7 +789,6 @@
         switchView('view-agent-menu', 'POSTE AGENT');
     }
 
-    // --- ACTIONS CHEF DE POSTE ---
     function openChefMode() {
         const pwd = prompt("Accès administrateur. Mot de passe :");
         if (pwd === ADMIN_PWD) {
@@ -845,9 +863,8 @@
         });
     }
 
-    // --- NOUVEAU : SIGNALEMENT C.R.I POUR LE CHEF DE POSTE ---
     function openSignalementChef() {
-        clearInterval(liveRefreshInterval); // On stoppe l'actualisation pendant la saisie
+        clearInterval(liveRefreshInterval); 
         resetDateInputs();
         switchView('view-chef-cri', 'SAISIE C.R.I - ' + currentChefDePoste);
     }
@@ -855,7 +872,7 @@
     function fermerSignalementChef() {
         document.getElementById('chef-cri-form').reset();
         switchView('view-chef', 'SUPERVISION PCS - ' + currentChefDePoste);
-        liveRefreshInterval = setInterval(fetchJournalData, currentRefreshRate); // On relance
+        liveRefreshInterval = setInterval(fetchJournalData, currentRefreshRate); 
     }
 
     function genererCRIChef() {
@@ -931,9 +948,12 @@
                 data.forEach(row => {
                     let cleanDate = formatAffichageDate(row.date);
                     let cleanTime = formatAffichageHeure(row.heure);
+                    
+                    // Si la nature n'est pas dans la liste des actions systèmes, c'est un CRI (on met en rouge)
+                    let criClass = !SYSTEM_ACTIONS.includes(row.nature) ? " is-cri" : "";
 
                     html += `
-                    <div class="journal-item">
+                    <div class="journal-item${criClass}">
                         <div class="j-date">${cleanDate}</div>
                         <div class="j-time">${cleanTime}</div>
                         <div class="j-agent">${row.agent}</div>
@@ -1003,6 +1023,15 @@
                 1: { cellWidth: 50 },
                 2: { cellWidth: 50 },
                 3: { cellWidth: 'auto' }
+            },
+            didParseCell: function(data) {
+                if (data.section === 'body') {
+                    // Vérification de la nature pour l'export PDF (colonne index 2)
+                    let rowNature = data.row.raw[2];
+                    if (!SYSTEM_ACTIONS.includes(rowNature)) {
+                        data.cell.styles.textColor = [192, 57, 43]; // Rouge pour les C.R.I
+                    }
+                }
             }
         });
 
