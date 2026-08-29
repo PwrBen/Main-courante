@@ -43,6 +43,9 @@
         .view { display: none; flex: 1; overflow-y: auto; padding: 20px; }
         .view.active { display: block; }
         
+        /* Le Mode Chef de Poste nécessite un comportement flex spécifique pour la hauteur */
+        #view-chef.active { display: flex; flex-direction: column; overflow: hidden; padding: 20px;}
+        
         /* Menu et Formulaires */
         .menu-container { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; gap: 20px; }
         .btn-menu { width: 100%; padding: 25px; font-size: 18px; font-weight: bold; border-radius: 12px; border: none; cursor: pointer; color: white; text-transform: uppercase; box-shadow: 0 5px 15px rgba(0,0,0,0.2); transition: 0.3s; }
@@ -66,26 +69,56 @@
         .btn { background: #27ae60; color: white; border: none; width: 100%; padding: 16px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; text-transform: uppercase; margin-top: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .btn-return { background: #7f8c8d; margin-top: 10px; }
 
-        /* Panneau de Contrôle Chef de Poste (Desktop) */
-        .control-panel {
+        /* --- LAYOUT DU CHEF DE POSTE (2 COLONNES) --- */
+        .chef-layout {
             display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
+            gap: 20px;
+            flex: 1;
+            overflow: hidden; /* Empêche le débordement global */
             margin-top: 15px;
         }
-        .control-panel .btn { margin-top: 0; flex: 1; min-width: 150px; font-size: 12px; padding: 15px 10px; }
+
+        .control-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 220px;
+            flex-shrink: 0;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+        .control-panel .btn { margin-top: 0; font-size: 13px; padding: 15px 10px; box-shadow: 0 3px 6px rgba(0,0,0,0.15); transition: 0.2s;}
+        .control-panel .btn:active { transform: translateY(2px); box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
         
         .btn-mention { background: #f39c12; }
         .btn-pdf { background: #8e44ad; }
         .btn-export { background: #2980b9; }
         .btn-reset { background: #c0392b; }
 
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+            color: #34495e;
+            font-weight: bold;
+        }
+
         /* Tableau Main Courante Serveur (Grid Desktop) */
-        .journal-container { background: white; border-radius: 8px; padding: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-height: 60vh; overflow-y: auto; margin-bottom: 15px; position: relative; border: 1px solid #bdc3c7;}
+        .journal-container { 
+            flex: 1; 
+            background: white; 
+            border-radius: 8px; 
+            padding: 0; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
+            overflow-y: auto; /* Seul le tableau défile */
+            position: relative; 
+            border: 1px solid #bdc3c7;
+        }
         
         .journal-header-row {
             display: grid;
-            grid-template-columns: 100px 180px 220px 1fr;
+            grid-template-columns: 90px 70px 180px 220px 1fr;
             gap: 15px;
             background: #004b87;
             color: white;
@@ -99,7 +132,7 @@
 
         .journal-item { 
             display: grid;
-            grid-template-columns: 100px 180px 220px 1fr;
+            grid-template-columns: 90px 70px 180px 220px 1fr;
             gap: 15px;
             align-items: center;
             border-bottom: 1px solid #eee; 
@@ -110,7 +143,8 @@
         .journal-item:last-child { border-bottom: none; }
         .journal-item:hover { background-color: #f8f9fa; }
 
-        .j-time { font-size: 12px; color: #7f8c8d; font-weight: bold; }
+        .j-date { font-size: 13px; color: #34495e; font-weight: bold; }
+        .j-time { font-size: 13px; color: #7f8c8d; font-weight: bold; }
         .j-agent { font-size: 13px; color: #2980b9; font-weight: bold; }
         .j-nature { font-size: 13px; font-weight: bold; color: #c0392b;}
         .j-desc { font-size: 13px; color: #34495e; line-height: 1.4; }
@@ -123,6 +157,14 @@
         .receipt-header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 15px; }
         .receipt-body div { margin-bottom: 6px; }
         .btn-close { background: #e74c3c; margin-top: 15px; width: 80%; }
+
+        /* Responsivité de sécurité */
+        @media (max-width: 768px) {
+            .chef-layout { flex-direction: column; overflow-y: auto;}
+            .control-panel { width: 100%; flex-direction: row; flex-wrap: wrap; }
+            .control-panel .btn { flex: 1; min-width: 140px; }
+            .journal-container { flex: none; min-height: 400px; }
+        }
     </style>
 </head>
 <body>
@@ -142,7 +184,7 @@
         </div>
     </div>
 
-    <!-- MODE AGENT (Saisie C.R.I - Resté en format mobile étroit) -->
+    <!-- MODE AGENT (Saisie C.R.I - Format mobile) -->
     <div id="view-agent" class="view">
         <div id="loading-overlay" class="overlay">Transmission sécurisée en cours...</div>
         <form id="cri-form">
@@ -155,7 +197,7 @@
             <div class="section-title">L'Événement</div>
             <div class="row">
                 <div class="form-group"><label>Date</label><input type="date" id="date" required></div>
-                <div class="form-group"><label>Heure</label><input type="time" id="time" step="1" required></div>
+                <div class="form-group"><label>Heure</label><input type="time" id="time" required></div>
             </div>
             <div class="form-group">
                 <label>Lieu exact</label>
@@ -201,21 +243,28 @@
 
     <!-- MODE CHEF DE POSTE (Main Courante - Format Desktop Élargi) -->
     <div id="view-chef" class="view">
-        <div class="section-title" style="color: #2980b9; display: flex; justify-content: space-between;">
-            <span>REGISTRE CLOUD - SUPERVISION EN DIRECT</span>
-            <span style="color: #2ecc71;">Actualisation auto (5s)</span>
+        <div class="section-title" style="color: #2980b9; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 14px;">REGISTRE CLOUD - SUPERVISION EN DIRECT</span>
+            <div class="slider-container">
+                <label for="refresh-slider" style="margin:0; font-size: 11px;">ACTUALISATION : <span id="refresh-label">5s</span></label>
+                <input type="range" id="refresh-slider" min="5" max="60" value="5" oninput="updateRefreshRate(this.value)">
+            </div>
         </div>
         
-        <div class="journal-container" id="journal-list">
-            <div class="loader">Connexion à la base de données Google Sheets...</div>
-        </div>
-
-        <div class="control-panel">
-            <button type="button" class="btn btn-mention" onclick="ajouterMentionChef()">✍️ Ajouter une mention au journal</button>
-            <button type="button" class="btn btn-pdf" onclick="exporterJournalPDF()">📄 Éditer la Main Courante (PDF)</button>
-            <button type="button" class="btn btn-export" onclick="fermerEtExporterJournal()">📥 Fermer la main courante et exporter (CSV)</button>
-            <button type="button" class="btn btn-reset" onclick="resetJournal()">🗑️ RAZ (Serveur)</button>
-            <button type="button" class="btn btn-return" onclick="returnToMenu()">🚪 Quitter PCS</button>
+        <div class="chef-layout">
+            <!-- Colonne de gauche : Commandes -->
+            <div class="control-panel">
+                <button type="button" class="btn btn-mention" onclick="ajouterMentionChef()">✍️ Ajouter une mention</button>
+                <button type="button" class="btn btn-pdf" onclick="exporterJournalPDF()">📄 Éditer (PDF)</button>
+                <button type="button" class="btn btn-export" onclick="fermerEtExporterJournal()">📥 Fermer et exporter (CSV)</button>
+                <button type="button" class="btn btn-reset" onclick="resetJournal()">🗑️ RAZ (Serveur)</button>
+                <button type="button" class="btn btn-return" onclick="returnToMenu()">🚪 Quitter PCS</button>
+            </div>
+            
+            <!-- Colonne de droite : Grille des événements -->
+            <div class="journal-container" id="journal-list">
+                <div class="loader">Connexion à la base de données Google Sheets...</div>
+            </div>
         </div>
     </div>
 
@@ -243,8 +292,10 @@
 
     const ADMIN_PWD = "@main courante";
     let liveRefreshInterval = null;
+    let currentRefreshRate = 5000;
     let localDataBackup = []; 
     let currentChefDePoste = ""; 
+    let previousDataLength = 0; // Gère le scroll automatique
 
     // --- UTILITAIRES DE DATE ET HEURE ---
     function getFormattedDate() {
@@ -252,21 +303,20 @@
         const d = String(now.getDate()).padStart(2, '0');
         const m = String(now.getMonth() + 1).padStart(2, '0');
         const y = now.getFullYear();
-        return `${d}-${m}-${y}`; // JJ-MM-AAAA
+        return `${d}/${m}/${y}`; // JJ/MM/AAAA
     }
 
     function getFormattedTime() {
         const now = new Date();
         const h = String(now.getHours()).padStart(2, '0');
         const m = String(now.getMinutes()).padStart(2, '0');
-        const s = String(now.getSeconds()).padStart(2, '0');
-        return `${h}-${m}-${s}`; // HH-MM-SS
+        return `${h}:${m}`; // HH:MM
     }
 
     function resetDateInputs() {
         const now = new Date();
         document.getElementById('date').value = now.toISOString().split('T')[0];
-        document.getElementById('time').value = now.toTimeString().substring(0, 8); // hh:mm:ss
+        document.getElementById('time').value = now.toTimeString().substring(0, 5); // hh:mm
     }
 
     window.onload = function() {
@@ -279,12 +329,20 @@
         document.getElementById(viewId).classList.add('active');
         document.getElementById('app-title').innerText = title;
 
-        // Élargir l'écran uniquement pour le Chef de Poste
         const device = document.getElementById('main-device');
         if(viewId === 'view-chef') {
             device.classList.add('desktop-mode');
         } else {
             device.classList.remove('desktop-mode');
+        }
+    }
+
+    function updateRefreshRate(seconds) {
+        document.getElementById('refresh-label').innerText = seconds + 's';
+        currentRefreshRate = seconds * 1000;
+        if (liveRefreshInterval) {
+            clearInterval(liveRefreshInterval);
+            liveRefreshInterval = setInterval(fetchJournalData, currentRefreshRate);
         }
     }
 
@@ -318,7 +376,7 @@
             fetch(SCRIPT_URL, { method: 'POST', body: formData, mode: 'no-cors' })
             .then(() => { fetchJournalData(); });
 
-            liveRefreshInterval = setInterval(fetchJournalData, 5000);
+            liveRefreshInterval = setInterval(fetchJournalData, currentRefreshRate);
         } else if (pwd !== null) {
             alert("Accès refusé.");
         }
@@ -342,11 +400,11 @@
         fetch(SCRIPT_URL, { method: 'POST', body: formData, mode: 'no-cors' })
         .then(() => {
             fetchJournalData(); 
-            liveRefreshInterval = setInterval(fetchJournalData, 5000); 
+            liveRefreshInterval = setInterval(fetchJournalData, currentRefreshRate); 
         });
     }
 
-    // --- LECTURE DES DONNÉES DEPUIS GOOGLE SHEETS (MODE TABLEAU DESKTOP) ---
+    // --- LECTURE DES DONNÉES (CHRONOLOGIQUE DE HAUT EN BAS) ---
     function fetchJournalData() {
         fetch(SCRIPT_URL)
             .then(response => response.json())
@@ -359,28 +417,42 @@
                     return;
                 }
 
-                data.reverse(); // Le plus récent en haut
+                // Pour forcer l'autoscroll uniquement lors d'un nouvel événement
+                let shouldScroll = (data.length > previousDataLength);
+                previousDataLength = data.length;
 
                 // Génération de l'en-tête du tableau
                 let html = `
                 <div class="journal-header-row">
-                    <div>DATE & HEURE</div>
+                    <div>DATE</div>
+                    <div>HEURE</div>
                     <div>AGENT / POSTE</div>
                     <div>ÉVÉNEMENT</div>
                     <div>DÉTAILS & MESURES</div>
                 </div>`;
 
-                // Injection des lignes
+                // Affichage chronologique classique (sans inverser le tableau)
                 data.forEach(row => {
+                    // Remise en forme si stocké avec des tirets
+                    let formattedDate = row.date.replace(/-/g, '/');
+                    let formattedTime = row.heure.replace(/-/g, ':').substring(0, 5);
+
                     html += `
                     <div class="journal-item">
-                        <div class="j-time">${row.date}<br>${row.heure}</div>
+                        <div class="j-date">${formattedDate}</div>
+                        <div class="j-time">${formattedTime}</div>
                         <div class="j-agent">${row.agent}</div>
                         <div class="j-nature">${row.nature}</div>
                         <div class="j-desc">${row.description}</div>
                     </div>`;
                 });
+                
                 container.innerHTML = html;
+
+                // Fait défiler le tableau vers le bas pour voir le dernier événement
+                if(shouldScroll) {
+                    container.scrollTop = container.scrollHeight;
+                }
             })
             .catch(error => {
                 console.error("Erreur de connexion", error);
@@ -401,12 +473,12 @@
             alert("Veuillez remplir tous les champs obligatoires."); return;
         }
 
+        // Formatage pour l'envoi
         const dateParts = dateRaw.split('-');
-        const formattedDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
+        const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
         
         let timeParts = timeRaw.split(':');
-        if(timeParts.length === 2) timeParts.push("00"); 
-        const formattedTime = `${timeParts[0]}-${timeParts[1]}-${timeParts[2]}`;
+        const formattedTime = `${timeParts[0]}:${timeParts[1]}`;
 
         let mesures = [];
         document.querySelectorAll('.checkbox-group input[type="checkbox"]:checked').forEach(cb => mesures.push("- " + cb.value));
@@ -440,12 +512,12 @@
         returnToMenu();
     }
 
-    // --- EXPORT PDF DE LA MAIN COURANTE ---
+    // --- EXPORT PDF DE LA MAIN COURANTE (SANS LA COLONNE AGENT) ---
     function exporterJournalPDF() {
         if (localDataBackup.length === 0) { alert("Le registre est vide."); return; }
         
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF('landscape'); // Format paysage pour plus de place
+        const doc = new jsPDF('landscape'); 
 
         doc.setFontSize(18);
         doc.setTextColor(0, 75, 135); 
@@ -454,13 +526,15 @@
         doc.setFontSize(11);
         doc.setTextColor(100);
         doc.text("Édité par : Chef de Poste " + currentChefDePoste, 14, 30);
-        doc.text("Date d'édition : " + getFormattedDate() + " à " + getFormattedTime().replace(/-/g, ':'), 14, 36);
+        doc.text("Date d'édition : " + getFormattedDate() + " à " + getFormattedTime(), 14, 36);
 
-        let exportData = [...localDataBackup].reverse(); 
         let tableData = [];
         
-        exportData.forEach(row => {
-            tableData.push([row.date, row.heure, row.nature, row.description]);
+        // Ordre chronologique pour le PDF
+        localDataBackup.forEach(row => {
+            let fDate = row.date.replace(/-/g, '/');
+            let fTime = row.heure.replace(/-/g, ':').substring(0, 5);
+            tableData.push([fDate, fTime, row.nature, row.description]);
         });
 
         doc.autoTable({
@@ -472,7 +546,7 @@
             styles: { fontSize: 10, cellPadding: 4 },
             columnStyles: {
                 0: { cellWidth: 25 },
-                1: { cellWidth: 22 },
+                1: { cellWidth: 20 },
                 2: { cellWidth: 50 },
                 3: { cellWidth: 'auto' }
             }
@@ -499,19 +573,22 @@
         fetch(SCRIPT_URL, { method: 'POST', body: formData, mode: 'no-cors' })
         .then(() => { fetchJournalData(); });
 
-        localDataBackup.unshift({
+        localDataBackup.push({
             date: d, heure: t, agent: "CHEF DE POSTE : " + currentChefDePoste,
             nature: "FERMETURE MAIN COURANTE", description: "Fin de service et clôture du registre."
         });
 
         let csvContent = "data:text/csv;charset=utf-8,\uFEFFDate;Heure;Agent;Evénement signalé;Compte rendu\r\n";
-        let exportData = [...localDataBackup].reverse(); 
         
-        exportData.forEach(row => {
+        localDataBackup.forEach(row => {
             let cleanAgent = row.agent.replace(/;/g, ",");
             let cleanNature = row.nature.replace(/;/g, ",");
             let cleanCR = row.description.replace(/(\r\n|\n|\r)/gm, " ").replace(/;/g, ",");
-            csvContent += `${row.date};${row.heure};${cleanAgent};${cleanNature};${cleanCR}\r\n`;
+            
+            let fDate = row.date.replace(/-/g, '/');
+            let fTime = row.heure.replace(/-/g, ':').substring(0, 5);
+
+            csvContent += `${fDate};${fTime};${cleanAgent};${cleanNature};${cleanCR}\r\n`;
         });
 
         const encodedUri = encodeURI(csvContent);
