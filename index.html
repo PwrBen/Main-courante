@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Terminal PCS - Réseau Actif</title>
+    <!-- Bibliothèques pour l'export PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #2c3e50; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; overflow: hidden;}
+        
+        /* Conteneur principal dynamique (Format Smartphone par défaut) */
+        .device { 
+            width: 100%; max-width: 450px; height: 100vh; max-height: 850px; 
+            background: #ecf0f1; display: flex; flex-direction: column; position: relative; 
+            box-shadow: 0 0 20px rgba(0,0,0,0.5); transition: all 0.4s ease-in-out;
+        }
+        
+        @media (min-width: 480px) { 
+            .device:not(.desktop-mode) { height: 850px; border-radius: 30px; border: 12px solid #1a252f; } 
+        }
+        
+        /* Format Plein Écran pour le Mode Chef de Poste */
+        .device.desktop-mode {
+            max-width: 100vw; width: 100vw; height: 100vh; max-height: 100vh;
+            border-radius: 0; border: none;
+        }
+
+        .header { background: #004b87; color: white; padding: 15px; text-align: center; font-weight: bold; font-size: 18px; letter-spacing: 1px; display: flex; justify-content: space-between; align-items: center; border-radius: 0; transition: border-radius 0.4s;}
+        @media (min-width: 480px) { .device:not(.desktop-mode) .header { border-radius: 15px 15px 0 0; } }
+
+        .header .status { font-size: 12px; color: #2ecc71; animation: blink 2s infinite;}
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        
+        .view { display: none; flex: 1; overflow-y: auto; padding: 20px; }
+        .view.active { display: block; }
+        
+        #view-chef.active { display: flex; flex-direction: column; overflow: hidden; padding: 20px;}
+        
+        /* Menu et Formulaires */
+        .menu-container { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; gap: 20px; }
+        .btn-menu { width: 100%; padding: 25px; font-size: 18px; font-weight: bold; border-radius: 12px; border: none; cursor: pointer; color: white; text-transform: uppercase; box-shadow: 0 5px 15px rgba(0,0,0,0.2); transition: 0.3s; }
+        .btn-menu:active { transform: translateY(3px); }
+        .btn-menu-agent { background: #27ae60; }
+        .btn-menu-chef { background: #2980b9; }
+
+        .section-title { font-size: 12px; color: #7f8c8d; text-transform: uppercase; font-weight: bold; margin: 15px 0 5px 0; border-bottom: 2px solid #bdc3c7; padding-bottom: 3px; }
+        .form-group { margin-bottom: 12px; }
+        label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 4px; color: #34495e; }
+        input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; box-sizing: border-box; background: white; font-family: inherit; }
+        textarea { resize: vertical; min-height: 100px; }
+        input:focus, select:focus, textarea:focus { border-color: #004b87; outline: none; box-shadow: 0 0 5px rgba(0,75,135,0.3); }
+        .row { display: flex; gap: 10px; }
+        .row > div { flex: 1; }
+        
+        .checkbox-group { display: flex; flex-direction: column; gap: 10px; margin-top: 5px; }
+        .checkbox-group label { background: #fff; border: 1px solid #ccc; padding: 10px 12px; border-radius: 8px; font-weight: normal; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+        .checkbox-group input[type="checkbox"] { width: auto; margin: 0; transform: scale(1.2); }
+
+        .btn { background: #27ae60; color: white; border: none; width: 100%; padding: 16px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; text-transform: uppercase; margin-top: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .btn-return { background: #7f8c8d; margin-top: 10px; }
+
+        /* --- LAYOUT DU CHEF DE POSTE --- */
+        .chef-layout { display: flex; gap: 20px; flex: 1; overflow: hidden; margin-top: 15px; }
+
+        .control-panel { display: flex; flex-direction: column; gap: 10px; width: 220px; flex-shrink: 0; overflow-y: auto; padding-right: 5px; }
+        .control-panel .btn { margin-top: 0; font-size: 13px; padding: 15px 10px; box-shadow: 0 3px 6px rgba(0,0,0,0.15); transition: 0.2s;}
+        .control-panel .btn:active { transform: translateY(2px); box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
+        
+        .btn-open-mc { background: #16a085; }
+        .btn-mention { background: #f39c12; }
+        .btn-close-mc { background: #d35400; }
+        .btn-pdf { background: #8e44ad; }
+        .btn-export { background: #2980b9; }
+        .btn-reset { background: #c0392b; }
+
+        .slider-container { display: flex; align-items: center; gap: 10px; font-size: 12px; color: #34495e; font-weight: bold; }
+
+        /* Tableau Main Courante Serveur */
+        .journal-container { flex: 1; background: white; border-radius: 8px; padding: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1); overflow-y: auto; position: relative; border: 1px solid #bdc3c7; }
+        
+        .journal-header-row { display: grid; grid-template-columns: 90px 70px 180px 220px 1fr; gap: 15px; background: #004b87; color: white; padding: 12px 15px; font-weight: bold; font-size: 12px; position: sticky; top: 0; z-index: 2; }
+        
+        .journal-item { display: grid; grid-template-columns: 90px 70px 180px 220px 1fr; gap: 15px; align-items: center; border-bottom: 1px solid #eee; padding: 12px 15px; animation: fadeIn 0.5s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .journal-item:last-child { border-bottom: none; }
+        .journal-item:hover { background-color: #f8f9fa; }
+
+        .j-date { font-size: 13px; color: #34495e; font-weight: bold; }
+        .j-time { font-size: 13px; color: #7f8c8d; font-weight: bold; }
+        .j-agent { font-size: 13px; color: #2980b9; font-weight: bold; }
+        .j-nature { font-size: 13px; font-weight: bold; color: #c0392b;}
+        .j-desc { font-size: 13px; color: #34495e; line-height: 1.4; }
+
+        .loader { text-align: center; font-size: 14px; color: #3498db; padding: 30px; font-weight: bold;}
+        .overlay { display: none; position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(255,255,255,0.8); z-index: 10; justify-content: center; align-items: center; font-weight: bold; color: #2c3e50;}
+
+        .modal { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); flex-direction: column; justify-content: center; align-items: center; z-index: 100; padding: 20px; box-sizing: border-box; border-radius: inherit; }
+        .receipt { background: #fff; padding: 20px; width: 100%; max-width: 340px; box-sizing: border-box; font-family: 'Courier New', Courier, monospace; font-size: 13px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); max-height: 80vh; overflow-y: auto; }
+        .receipt-header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 15px; }
+        .receipt-body div { margin-bottom: 6px; }
+        .btn-close { background: #e74c3c; margin-top: 15px; width: 80%; }
+
+        @media (max-width: 768px) {
+            .chef-layout { flex-direction: column; overflow-y: auto;}
+            .control-panel { width: 100%; flex-direction: row; flex-wrap: wrap; }
+            .control-panel .btn { flex: 1; min-width: 140px; }
+            .journal-container { flex: none; min-height: 400px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="device" id="main-device">
+    <div class="header">
+        <span id="app-title">TERMINAL CLOUD</span>
+        <span class="status" id="app-status">● CONNECTÉ</span>
+    </div>
+    
+    <!-- MENU DE SÉLECTION -->
+    <div id="view-menu" class="view active">
+        <div class="menu-container">
+            <h2 style="color: #2c3e50; text-align: center; margin-bottom: 30px;">IDENTIFICATION RÉSEAU</h2>
+            <button class="btn-menu btn-menu-agent" onclick="openAgentMode()">🛡️ POSTE AGENT (Terrain)<br><span style="font-size:12px; font-weight:normal;">Saisie Mobile C.R.I</span></button>
+            <button class="btn-menu btn-menu-chef" onclick="openChefMode()">🖥️ CHEF DE POSTE (PCS)<br><span style="font-size:12px; font-weight:normal;">Supervision en direct</span></button>
+        </div>
+    </div>
+
+    <!-- MODE AGENT -->
+    <div id="view-agent" class="view">
+        <div id="loading-overlay" class="overlay">Transmission sécurisée en cours...</div>
+        <form id="cri-form">
+            <div class="section-title">Agent Rédacteur</div>
+            <div class="row">
+                <div class="form-group"><label>Nom</label><input type="text" id="nomAgent" style="text-transform: uppercase;" required></div>
+                <div class="form-group"><label>Indicatif</label><input type="text" id="poste" required></div>
+            </div>
+
+            <div class="section-title">L'Événement</div>
+            <div class="row">
+                <div class="form-group"><label>Date</label><input type="date" id="date" required></div>
+                <div class="form-group"><label>Heure</label><input type="time" id="time" required></div>
+            </div>
+            <div class="form-group">
+                <label>Lieu exact</label>
+                <input type="text" id="lieu" required>
+            </div>
+
+            <div class="section-title">Nature des faits</div>
+            <div class="form-group">
+                <select id="nature" required>
+                    <option value="" disabled selected>-- Sélectionner la nature --</option>
+                    <option value="Secours à Personne">Secours à Personne</option>
+                    <option value="Vol / Tentative (Flagrance)">Vol / Tentative de vol</option>
+                    <option value="Dégradation / Vandalisme">Dégradation / Vandalisme</option>
+                    <option value="Intrusion / Effraction">Intrusion / Effraction</option>
+                    <option value="Agression / Altercation">Agression / Altercation</option>
+                    <option value="Outrage / Insultes">Outrage / Insultes</option>
+                    <option value="Départ de Feu / Alarme">Départ de Feu / Alarme Incendie</option>
+                    <option value="Anomalie technique">Autre incident technique</option>
+                </select>
+            </div>
+
+            <div class="section-title">Description</div>
+            <div class="form-group">
+                <textarea id="description" required></textarea>
+            </div>
+
+            <div class="section-title">Mesures prises</div>
+            <div class="form-group">
+                <div class="checkbox-group">
+                    <label><input type="checkbox" value="Secours prévenus"> Secours (15/18)</label>
+                    <label><input type="checkbox" value="FDO prévenues"> FDO (17)</label>
+                    <label><input type="checkbox" value="Individu appréhendé (Art 73)"> Appréhension (Art 73)</label>
+                    <label><input type="checkbox" value="Palpation de sécurité"> Palpation de sécurité</label>
+                    <label><input type="checkbox" value="Moyen d'entrave (Art 803)"> Entrave (Art 803)</label>
+                    <label><input type="checkbox" value="Gel des lieux effectué"> Gel des lieux</label>
+                </div>
+            </div>
+
+            <button type="button" class="btn" onclick="genererCRI()">Valider et Transmettre au Serveur</button>
+            <button type="button" class="btn btn-return" onclick="returnToMenu()">Retour au menu</button>
+        </form>
+    </div>
+
+    <!-- MODE CHEF DE POSTE -->
+    <div id="view-chef" class="view">
+        <div class="section-title" style="color: #2980b9; display: flex; justify-content: space-between; align-items: center; margin-top:0;">
+            <span style="font-size: 14px;">REGISTRE CLOUD - SUPERVISION EN DIRECT</span>
+            <div class="slider-container">
+                <label for="refresh-slider" style="margin:0; font-size: 11px;">ACTUALISATION : <span id="refresh-label">5s</span></label>
+                <input type="range" id="refresh-slider" min="5" max="60" value="5" oninput="updateRefreshRate(this.value)">
+            </div>
+        </div>
+        
+        <div class="chef-layout">
+            <div class="control-panel">
+                <button type="button" class="btn btn-open-mc" onclick="ouvrirMainCourante()">🔓 Ouverture MC</button>
+                <button type="button" class="btn btn-mention" onclick="ajouterMentionChef()">✍️ Ajouter une mention</button>
+                <button type="button" class="btn btn-close-mc" onclick="fermerMainCourante()">🔒 Fermeture MC</button>
+                <hr style="width: 100%; border: 0; border-top: 1px solid #ccc; margin: 5px 0;">
+                <button type="button" class="btn btn-pdf" onclick="exporterJournalPDF()">📄 Éditer (PDF)</button>
+                <button type="button" class="btn btn-export" onclick="exporterJournalXLSX()">📥 Éditer (XLSX)</button>
+                <button type="button" class="btn btn-reset" onclick="resetJournal()">🗑️ RAZ (Serveur)</button>
+                <button type="button" class="btn btn-return" onclick="returnToMenu()">🚪 Quitter PCS</button>
+            </div>
+            
+            <div class="journal-container" id="journal-list">
+                <div class="loader">Connexion à la base de données Google Sheets...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Récapitulatif -->
+    <div class="modal" id="ticket-modal">
+        <div class="receipt">
+            <div class="receipt-header">
+                <h3 style="margin: 0; color: #27ae60;">TRANSMISSION RÉUSSIE</h3>
+                <span>Enregistré dans le Cloud</span>
+            </div>
+            <div class="receipt-body" style="text-align: center; margin-top: 20px;">
+                <div style="font-size: 50px; margin-bottom: 20px;">✅</div>
+                <p>Le Chef de Poste a reçu votre rapport en direct sur la Main Courante électronique.</p>
+            </div>
+        </div>
+        <button class="btn btn-close" onclick="fermerCRI()">Fermer et Reprendre la Ronde</button>
+    </div>
+</div>
+
+<script>
+    // =========================================================================
+    // URL DU SCRIPT GOOGLE APPS SCRIPT
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbznqxTA4xF3jid7mZp333niHbzVA5YXVaFGFuJFry3yeie03eaLvzg6FIPX5N9aASeZ/exec";
+    // =========================================================================
+
+    const ADMIN_PWD = "@main courante";
+    let liveRefreshInterval = null;
+    let currentRefreshRate = 5000;
+    let localDataBackup = []; 
+    let currentChefDePoste = ""; 
+    let previousDataLength = 0; 
+
+    // --- FORÇAGE DE L'HEURE LOCALE (PARIS) ---
+    function getParisDate() {
+        const str = new Date().toLocaleString("en-US", { timeZone: "Europe/Paris" });
+        return new Date(str);
+    }
+
+    function getFormattedDate() {
+        const now = getParisDate();
+        const d = String(now.getDate()).padStart(2, '0');
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const y = now.getFullYear();
+        return `${d}/${m}/${y}`;
+    }
+
+    function getFormattedTime() {
+        const now = getParisDate();
+        const h = String(now.getHours()).padStart(2, '0');
+        const m = String(now.getMinutes()).padStart(2, '0');
+        return `${h}:${m}`;
+    }
+
+    function formatAffichageDate(rawDate) {
+        if (!rawDate) return "";
+        let strDate = String(rawDate);
+        if (strDate.includes('T')) {
+            let datePart = strDate.split('T')[0];
+            let parts = datePart.split('-');
+            if(parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+        return strDate.replace(/^'/, '');
+    }
+
+    function formatAffichageHeure(rawTime) {
+        if (!rawTime) return "";
+        let strTime = String(rawTime);
+        if (strTime.includes('T')) {
+            return strTime.split('T')[1].substring(0, 5);
+        }
+        return strTime.replace(/^'/, '').substring(0, 5);
+    }
+
+    function resetDateInputs() {
+        const now = getParisDate();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        document.getElementById('date').value = `${y}-${m}-${d}`;
+        
+        const h = String(now.getHours()).padStart(2, '0');
+        const min = String(now.getMinutes()).padStart(2, '0');
+        document.getElementById('time').value = `${h}:${min}`;
+    }
+
+    window.onload = function() {
+        resetDateInputs();
+    };
+
+    // --- GESTION DES VUES ---
+    function switchView(viewId, title) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById(viewId).classList.add('active');
+        document.getElementById('app-title').innerText = title;
+
+        const device = document.getElementById('main-device');
+        if(viewId === 'view-chef') {
+            device.classList.add('desktop-mode');
+        } else {
+            device.classList.remove('desktop-mode');
+        }
+    }
+
+    function updateRefreshRate(seconds) {
+        document.getElementById('refresh-label').innerText = seconds + 's';
+        currentRefreshRate = seconds * 1000;
+        if (liveRefreshInterval) {
+            clearInterval(liveRefreshInterval);
+            liveRefreshInterval = setInterval(fetchJournalData, currentRefreshRate);
+        }
+    }
+
+    function returnToMenu() {
+        if(liveRefreshInterval) clearInterval(liveRefreshInterval);
+        switchView('view-menu', 'TERMINAL CLOUD');
+        document.getElementById('cri-form').reset();
+        resetDateInputs();
+        currentChefDePoste = ""; 
+    }
+
+    function openAgentMode() { switchView('view-agent', 'SAISIE MOBILE C.R.I'); }
+
+    function openChefMode() {
+        const pwd = prompt("Accès administrateur. Mot de passe :");
+        if (pwd === ADMIN_PWD) {
+            const nomChef = prompt("Veuillez saisir votre Nom (Chef de Poste) :");
+            if(!nomChef) return; 
+            
+            currentChefDePoste = nomChef.toUpperCase();
+            switchView('view-chef', 'SUPERVISION PCS - ' + currentChefDePoste);
+            
+            // On lance la supervision sans ouvrir automatiquement la MC
+            fetchJournalData();
+            liveRefreshInterval = setInterval(fetchJournalData, currentRefreshRate);
+        } else if (pwd !== null) {
+            alert("Accès refusé.");
+        }
+    }
+
+    // --- ACTIONS MANUELLES DU CHEF DE POSTE ---
+    function ouvrirMainCourante() {
+        if(!confirm("Procéder à l'ouverture de la Main Courante ?")) return;
+        
+        clearInterval(liveRefreshInterval);
+        const formData = new URLSearchParams();
+        formData.append('action', 'add');
+        formData.append('date', "'" + getFormattedDate());
+        formData.append('heure', "'" + getFormattedTime());
+        formData.append('agent', "CHEF DE POSTE : " + currentChefDePoste);
+        formData.append('nature', "OUVERTURE MAIN COURANTE");
+        formData.append('description', "Prise de poste et ouverture du registre.");
+
+        fetch(SCRIPT_URL, { method: 'POST', body: formData, mode: 'no-cors' })
+        .then(() => {
+            fetchJournalData(); 
+            liveRefreshInterval = setInterval(fetchJournalData, currentRefreshRate); 
+        });
+    }
+
+    function fermerMainCourante() {
+        if(!confirm("Procéder à la fermeture de la Main Courante ?")) return;
+        
+        clearInterval(liveRefreshInterval);
+        const formData = new URLSearchParams();
+        formData.append('action', 'add');
+        formData.append('date', "'" + getFormattedDate());
+        formData.append('heure', "'" + getFormattedTime());
+        formData.append('agent', "CHEF DE POSTE : " + currentChefDePoste);
+        formData.append('nature', "FERMETURE MAIN COURANTE");
+        formData.append('description', "Fin de service et clôture du registre.");
+
+        fetch(SCRIPT_URL, { method: 'POST', body: formData, mode: 'no-cors' })
+        .then(() => {
+            fetchJournalData(); 
+            liveRefreshInterval = setInterval(fetchJournalData, currentRefreshRate); 
+        });
+    }
+
+    function ajouterMentionChef() {
+        const mention = prompt("Saisissez l'événement ou la mention à ajouter au journal :");
+        if (!mention) return;
+
+        clearInterval(liveRefreshInterval);
+        const formData = new URLSearchParams();
+        formData.append('action', 'add');
+        formData.append('date', "'" + getFormattedDate());
+        formData.append('heure', "'" + getFormattedTime());
+        formData.append('agent', "CHEF DE POSTE : " + currentChefDePoste);
+        formData.append('nature', "MENTION SPÉCIALE");
+        formData.append('description', mention);
+
+        fetch(SCRIPT_URL, { method: 'POST', body: formData, mode: 'no-cors' })
+        .then(() => {
+            fetchJournalData(); 
+            liveRefreshInterval = setInterval(fetchJournalData, currentRefreshRate); 
+        });
+    }
+
+    // --- LECTURE CHRONOLOGIQUE DES DONNÉES ---
+    function fetchJournalData() {
+        fetch(SCRIPT_URL)
+            .then(response => response.json())
+            .then(data => {
+                localDataBackup = data;
+                const container = document.getElementById('journal-list');
+                
+                if (data.length === 0) {
+                    container.innerHTML = "<div class='loader'>Aucun événement signalé pour l'instant.</div>";
+                    return;
+                }
+
+                let shouldScroll = (data.length > previousDataLength);
+                previousDataLength = data.length;
+
+                let html = `
+                <div class="journal-header-row">
+                    <div>DATE</div>
+                    <div>HEURE</div>
+                    <div>AGENT / POSTE</div>
+                    <div>ÉVÉNEMENT</div>
+                    <div>DÉTAILS & MESURES</div>
+                </div>`;
+
+                data.forEach(row => {
+                    let cleanDate = formatAffichageDate(row.date);
+                    let cleanTime = formatAffichageHeure(row.heure);
+
+                    html += `
+                    <div class="journal-item">
+                        <div class="j-date">${cleanDate}</div>
+                        <div class="j-time">${cleanTime}</div>
+                        <div class="j-agent">${row.agent}</div>
+                        <div class="j-nature">${row.nature}</div>
+                        <div class="j-desc">${row.description}</div>
+                    </div>`;
+                });
+                
+                container.innerHTML = html;
+
+                if(shouldScroll) {
+                    container.scrollTop = container.scrollHeight;
+                }
+            })
+            .catch(error => {
+                console.error("Erreur de connexion", error);
+            });
+    }
+
+    // --- ENVOI DES DONNÉES (Agent) ---
+    function genererCRI() {
+        const nomAgent = document.getElementById('nomAgent').value.toUpperCase();
+        const poste = document.getElementById('poste').value;
+        const dateRaw = document.getElementById('date').value;
+        const timeRaw = document.getElementById('time').value;
+        const lieu = document.getElementById('lieu').value;
+        const nature = document.getElementById('nature').value;
+        const description = document.getElementById('description').value;
+
+        if(!nomAgent || !lieu || !nature || !description) {
+            alert("Veuillez remplir tous les champs obligatoires."); return;
+        }
+
+        const dateParts = dateRaw.split('-');
+        const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+        
+        let timeParts = timeRaw.split(':');
+        const formattedTime = `${timeParts[0]}:${timeParts[1]}`;
+
+        let mesures = [];
+        document.querySelectorAll('.checkbox-group input[type="checkbox"]:checked').forEach(cb => mesures.push("- " + cb.value));
+        
+        const identiteComplete = nomAgent + " (" + poste + ")";
+        const resumeAction = "Lieu: " + lieu + " | " + description + (mesures.length > 0 ? " | Mesures : " + mesures.join(", ") : "");
+
+        document.getElementById('loading-overlay').style.display = 'flex';
+
+        const formData = new URLSearchParams();
+        formData.append('action', 'add');
+        formData.append('date', "'" + formattedDate);
+        formData.append('heure', "'" + formattedTime);
+        formData.append('agent', identiteComplete);
+        formData.append('nature', nature);
+        formData.append('description', resumeAction);
+
+        fetch(SCRIPT_URL, { method: 'POST', body: formData, mode: 'no-cors' })
+        .then(() => {
+            document.getElementById('loading-overlay').style.display = 'none';
+            document.getElementById('ticket-modal').style.display = 'flex';
+        })
+        .catch(error => {
+            document.getElementById('loading-overlay').style.display = 'none';
+            alert("Erreur réseau. Impossible de joindre le serveur.");
+        });
+    }
+
+    function fermerCRI() {
+        document.getElementById('ticket-modal').style.display = 'none';
+        returnToMenu();
+    }
+
+    // --- EXPORT PDF ---
+    function exporterJournalPDF() {
+        if (localDataBackup.length === 0) { alert("Le registre est vide."); return; }
+        
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('landscape'); 
+
+        doc.setFontSize(18);
+        doc.setTextColor(0, 75, 135); 
+        doc.text("REGISTRE DE MAIN COURANTE", 14, 22);
+        
+        doc.setFontSize(11);
+        doc.setTextColor(100);
+        doc.text("Édité par : Chef de Poste " + currentChefDePoste, 14, 30);
+        doc.text("Date d'édition : " + getFormattedDate() + " à " + getFormattedTime(), 14, 36);
+
+        // Extraction des agents uniques
+        let agentsSet = new Set();
+        localDataBackup.forEach(row => {
+            if(!row.agent.startsWith("CHEF DE POSTE")) {
+                agentsSet.add(row.agent);
+            }
+        });
+        let agentsList = Array.from(agentsSet).join(", ");
+        if (agentsList === "") agentsList = "Aucun agent externe signalé.";
+
+        // Gestion de la longueur de la liste d'agents pour l'en-tête
+        let splitAgents = doc.splitTextToSize("Agents intervenants : " + agentsList, 270);
+        doc.text(splitAgents, 14, 42);
+
+        let tableData = [];
+        
+        localDataBackup.forEach(row => {
+            let fTime = formatAffichageHeure(row.heure);
+            // La colonne Date est supprimée, la colonne Agent est intégrée
+            tableData.push([fTime, row.agent, row.nature, row.description]);
+        });
+
+        // La position de départ (startY) s'ajuste selon le nombre de lignes prises par la liste des agents
+        let startYTable = 45 + (splitAgents.length * 5);
+
+        doc.autoTable({
+            startY: startYTable,
+            head: [['Heure', 'Agent / Poste', 'Événement signalé', 'Compte rendu des faits']],
+            body: tableData,
+            theme: 'grid',
+            headStyles: { fillColor: [0, 75, 135] },
+            styles: { fontSize: 10, cellPadding: 4 },
+            columnStyles: {
+                0: { cellWidth: 20 },
+                1: { cellWidth: 50 },
+                2: { cellWidth: 50 },
+                3: { cellWidth: 'auto' }
+            }
+        });
+
+        // Ajout de la case Signature à la fin du tableau
+        let finalY = doc.lastAutoTable.finalY || startYTable + 20;
+        
+        // Si on est trop bas sur la page, on crée une nouvelle page
+        if (finalY > 160) {
+            doc.addPage();
+            finalY = 20;
+        }
+
+        doc.setFontSize(11);
+        doc.setTextColor(0, 0, 0);
+        doc.text("Signature du Chef de Poste :", 215, finalY + 15);
+        doc.rect(215, finalY + 20, 65, 30); // Cadre pour la signature (x, y, largeur, hauteur)
+
+        doc.save("Main_Courante_Arago.pdf");
+    }
+
+    // --- EXPORT XLSX (CSV) ---
+    function exporterJournalXLSX() {
+        if (localDataBackup.length === 0) { alert("Le registre est vide."); return; }
+        
+        let csvContent = "data:text/csv;charset=utf-8,\uFEFFDate;Heure;Agent;Evénement signalé;Compte rendu\r\n";
+        
+        localDataBackup.forEach(row => {
+            let cleanAgent = row.agent.replace(/;/g, ",");
+            let cleanNature = row.nature.replace(/;/g, ",");
+            let cleanCR = row.description.replace(/(\r\n|\n|\r)/gm, " ").replace(/;/g, ",");
+            
+            let fDate = formatAffichageDate(row.date);
+            let fTime = formatAffichageHeure(row.heure);
+
+            csvContent += `${fDate};${fTime};${cleanAgent};${cleanNature};${cleanCR}\r\n`;
+        });
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "Main_Courante_Arago.csv"); // Format CSV standard pour Excel
+        document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    }
+
+    function resetJournal() {
+        if (confirm("ATTENTION : Cette action va effacer définitivement le Google Sheets du serveur. Confirmer ?")) {
+            const formData = new URLSearchParams();
+            formData.append('action', 'reset');
+
+            fetch(SCRIPT_URL, { method: 'POST', body: formData, mode: 'no-cors' })
+            .then(() => {
+                alert("Ordre de réinitialisation envoyé au serveur.");
+                fetchJournalData(); 
+            });
+        }
+    }
+</script>
+
+</body>
+</html>
