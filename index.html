@@ -25,7 +25,6 @@
             transition: all 0.4s ease-in-out;
         }
         
-        /* Ajout du contour smartphone uniquement si on n'est PAS en mode desktop */
         @media (min-width: 480px) { 
             .device:not(.desktop-mode) { 
                 height: 850px; 
@@ -53,7 +52,6 @@
         .view { display: none; flex: 1; overflow-y: auto; padding: 20px; }
         .view.active { display: block; }
         
-        /* Le Mode Chef de Poste nécessite un comportement flex spécifique pour la hauteur */
         #view-chef.active { display: flex; flex-direction: column; overflow: hidden; padding: 20px;}
         
         /* Menu et Formulaires */
@@ -79,24 +77,10 @@
         .btn { background: #27ae60; color: white; border: none; width: 100%; padding: 16px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; text-transform: uppercase; margin-top: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .btn-return { background: #7f8c8d; margin-top: 10px; }
 
-        /* --- LAYOUT DU CHEF DE POSTE (2 COLONNES) --- */
-        .chef-layout {
-            display: flex;
-            gap: 20px;
-            flex: 1;
-            overflow: hidden; 
-            margin-top: 15px;
-        }
+        /* --- LAYOUT DU CHEF DE POSTE --- */
+        .chef-layout { display: flex; gap: 20px; flex: 1; overflow: hidden; margin-top: 15px; }
 
-        .control-panel {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            width: 220px;
-            flex-shrink: 0;
-            overflow-y: auto;
-            padding-right: 5px;
-        }
+        .control-panel { display: flex; flex-direction: column; gap: 12px; width: 220px; flex-shrink: 0; overflow-y: auto; padding-right: 5px; }
         .control-panel .btn { margin-top: 0; font-size: 13px; padding: 15px 10px; box-shadow: 0 3px 6px rgba(0,0,0,0.15); transition: 0.2s;}
         .control-panel .btn:active { transform: translateY(2px); box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
         
@@ -105,50 +89,14 @@
         .btn-export { background: #2980b9; }
         .btn-reset { background: #c0392b; }
 
-        .slider-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 12px;
-            color: #34495e;
-            font-weight: bold;
-        }
+        .slider-container { display: flex; align-items: center; gap: 10px; font-size: 12px; color: #34495e; font-weight: bold; }
 
-        /* Tableau Main Courante Serveur (Grid Plein Écran) */
-        .journal-container { 
-            flex: 1; 
-            background: white; 
-            border-radius: 8px; 
-            padding: 0; 
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
-            overflow-y: auto; 
-            position: relative; 
-            border: 1px solid #bdc3c7;
-        }
+        /* Tableau Main Courante Serveur */
+        .journal-container { flex: 1; background: white; border-radius: 8px; padding: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1); overflow-y: auto; position: relative; border: 1px solid #bdc3c7; }
         
-        .journal-header-row {
-            display: grid;
-            grid-template-columns: 90px 70px 180px 220px 1fr;
-            gap: 15px;
-            background: #004b87;
-            color: white;
-            padding: 12px 15px;
-            font-weight: bold;
-            font-size: 12px;
-            position: sticky;
-            top: 0;
-            z-index: 2;
-        }
-
-        .journal-item { 
-            display: grid;
-            grid-template-columns: 90px 70px 180px 220px 1fr;
-            gap: 15px;
-            align-items: center;
-            border-bottom: 1px solid #eee; 
-            padding: 12px 15px; 
-            animation: fadeIn 0.5s;
-        }
+        .journal-header-row { display: grid; grid-template-columns: 90px 70px 180px 220px 1fr; gap: 15px; background: #004b87; color: white; padding: 12px 15px; font-weight: bold; font-size: 12px; position: sticky; top: 0; z-index: 2; }
+        
+        .journal-item { display: grid; grid-template-columns: 90px 70px 180px 220px 1fr; gap: 15px; align-items: center; border-bottom: 1px solid #eee; padding: 12px 15px; animation: fadeIn 0.5s; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         .journal-item:last-child { border-bottom: none; }
         .journal-item:hover { background-color: #f8f9fa; }
@@ -193,7 +141,7 @@
         </div>
     </div>
 
-    <!-- MODE AGENT (Saisie C.R.I) -->
+    <!-- MODE AGENT -->
     <div id="view-agent" class="view">
         <div id="loading-overlay" class="overlay">Transmission sécurisée en cours...</div>
         <form id="cri-form">
@@ -261,7 +209,6 @@
         </div>
         
         <div class="chef-layout">
-            <!-- Colonne de gauche : Commandes -->
             <div class="control-panel">
                 <button type="button" class="btn btn-mention" onclick="ajouterMentionChef()">✍️ Ajouter une mention</button>
                 <button type="button" class="btn btn-pdf" onclick="exporterJournalPDF()">📄 Éditer (PDF)</button>
@@ -270,14 +217,13 @@
                 <button type="button" class="btn btn-return" onclick="returnToMenu()">🚪 Quitter PCS</button>
             </div>
             
-            <!-- Colonne de droite : Grille des événements -->
             <div class="journal-container" id="journal-list">
                 <div class="loader">Connexion à la base de données Google Sheets...</div>
             </div>
         </div>
     </div>
 
-    <!-- Modal Récapitulatif (Ticket) -->
+    <!-- Modal Récapitulatif -->
     <div class="modal" id="ticket-modal">
         <div class="receipt">
             <div class="receipt-header">
@@ -306,9 +252,14 @@
     let currentChefDePoste = ""; 
     let previousDataLength = 0; 
 
-    // --- UTILITAIRES DE DATE ET HEURE ---
+    // --- FORÇAGE DE L'HEURE LOCALE (PARIS) ---
+    function getParisDate() {
+        const str = new Date().toLocaleString("en-US", { timeZone: "Europe/Paris" });
+        return new Date(str);
+    }
+
     function getFormattedDate() {
-        const now = new Date();
+        const now = getParisDate();
         const d = String(now.getDate()).padStart(2, '0');
         const m = String(now.getMonth() + 1).padStart(2, '0');
         const y = now.getFullYear();
@@ -316,21 +267,22 @@
     }
 
     function getFormattedTime() {
-        const now = new Date();
+        const now = getParisDate();
         const h = String(now.getHours()).padStart(2, '0');
         const m = String(now.getMinutes()).padStart(2, '0');
         return `${h}:${m}`; // HH:MM
     }
 
-    // Filtres anti-bugs Google Sheets (Gère les formats ISO comme 2026-08-28T22:00:00.000Z)
+    // Gestion de l'affichage des vieilles données (bug 1899) et nettoyage des apostrophes
     function formatAffichageDate(rawDate) {
         if (!rawDate) return "";
         let strDate = String(rawDate);
         if (strDate.includes('T')) {
-            let parts = strDate.split('T')[0].split('-');
-            if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            let datePart = strDate.split('T')[0];
+            let parts = datePart.split('-');
+            if(parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
         }
-        return strDate.replace(/-/g, '/');
+        return strDate.replace(/^'/, '');
     }
 
     function formatAffichageHeure(rawTime) {
@@ -339,20 +291,26 @@
         if (strTime.includes('T')) {
             return strTime.split('T')[1].substring(0, 5);
         }
-        return strTime.replace(/-/g, ':').substring(0, 5);
+        return strTime.replace(/^'/, '').substring(0, 5);
     }
 
     function resetDateInputs() {
-        const now = new Date();
-        document.getElementById('date').value = now.toISOString().split('T')[0];
-        document.getElementById('time').value = now.toTimeString().substring(0, 5); // hh:mm
+        const now = getParisDate();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        document.getElementById('date').value = `${y}-${m}-${d}`;
+        
+        const h = String(now.getHours()).padStart(2, '0');
+        const min = String(now.getMinutes()).padStart(2, '0');
+        document.getElementById('time').value = `${h}:${min}`;
     }
 
     window.onload = function() {
         resetDateInputs();
     };
 
-    // --- GESTION DE L'INTERFACE DYNAMIQUE ---
+    // --- GESTION DES VUES ---
     function switchView(viewId, title) {
         document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
         document.getElementById(viewId).classList.add('active');
@@ -394,10 +352,11 @@
             currentChefDePoste = nomChef.toUpperCase();
             switchView('view-chef', 'SUPERVISION PCS - ' + currentChefDePoste);
             
+            // Ajout d'une apostrophe pour forcer Google Sheets à interpréter comme du Texte
             const formData = new URLSearchParams();
             formData.append('action', 'add');
-            formData.append('date', getFormattedDate());
-            formData.append('heure', getFormattedTime());
+            formData.append('date', "'" + getFormattedDate());
+            formData.append('heure', "'" + getFormattedTime());
             formData.append('agent', "CHEF DE POSTE : " + currentChefDePoste);
             formData.append('nature', "OUVERTURE MAIN COURANTE");
             formData.append('description', "Prise de poste et ouverture du registre.");
@@ -419,8 +378,8 @@
 
         const formData = new URLSearchParams();
         formData.append('action', 'add');
-        formData.append('date', getFormattedDate());
-        formData.append('heure', getFormattedTime());
+        formData.append('date', "'" + getFormattedDate());
+        formData.append('heure', "'" + getFormattedTime());
         formData.append('agent', "CHEF DE POSTE : " + currentChefDePoste);
         formData.append('nature', "MENTION SPÉCIALE");
         formData.append('description', mention);
@@ -432,7 +391,7 @@
         });
     }
 
-    // --- LECTURE DES DONNÉES (CHRONOLOGIQUE) ---
+    // --- LECTURE CHRONOLOGIQUE DES DONNÉES ---
     function fetchJournalData() {
         fetch(SCRIPT_URL)
             .then(response => response.json())
@@ -482,7 +441,7 @@
             });
     }
 
-    // --- ENVOI DES DONNÉES VERS GOOGLE SHEETS (Agent) ---
+    // --- ENVOI DES DONNÉES (Agent) ---
     function genererCRI() {
         const nomAgent = document.getElementById('nomAgent').value.toUpperCase();
         const poste = document.getElementById('poste').value;
@@ -512,8 +471,8 @@
 
         const formData = new URLSearchParams();
         formData.append('action', 'add');
-        formData.append('date', formattedDate);
-        formData.append('heure', formattedTime);
+        formData.append('date', "'" + formattedDate);
+        formData.append('heure', "'" + formattedTime);
         formData.append('agent', identiteComplete);
         formData.append('nature', nature);
         formData.append('description', resumeAction);
@@ -576,7 +535,7 @@
         doc.save("Main_Courante_Arago.pdf");
     }
 
-    // --- FERMETURE, EXPORT CSV (XLSX) ET RESET SERVEUR ---
+    // --- FERMETURE ET EXPORT XLSX (CSV) ---
     function fermerEtExporterJournal() {
         if (localDataBackup.length === 0) { alert("Le registre est vide."); return; }
         
@@ -585,8 +544,8 @@
 
         const formData = new URLSearchParams();
         formData.append('action', 'add');
-        formData.append('date', d);
-        formData.append('heure', t);
+        formData.append('date', "'" + d);
+        formData.append('heure', "'" + t);
         formData.append('agent', "CHEF DE POSTE : " + currentChefDePoste);
         formData.append('nature', "FERMETURE MAIN COURANTE");
         formData.append('description', "Fin de service et clôture du registre.");
@@ -594,6 +553,7 @@
         fetch(SCRIPT_URL, { method: 'POST', body: formData, mode: 'no-cors' })
         .then(() => { fetchJournalData(); });
 
+        // Injection manuelle pour l'export immédiat
         localDataBackup.push({
             date: d, heure: t, agent: "CHEF DE POSTE : " + currentChefDePoste,
             nature: "FERMETURE MAIN COURANTE", description: "Fin de service et clôture du registre."
@@ -615,7 +575,7 @@
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
-        link.setAttribute("download", "Main_Courante_Arago.csv"); // Format CSV standard pour Excel
+        link.setAttribute("download", "Main_Courante_Arago.csv");
         document.body.appendChild(link); link.click(); document.body.removeChild(link);
     }
 
