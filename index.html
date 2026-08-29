@@ -84,7 +84,7 @@
             display: flex;
             gap: 20px;
             flex: 1;
-            overflow: hidden; /* Empêche le débordement global */
+            overflow: hidden; 
             margin-top: 15px;
         }
 
@@ -121,7 +121,7 @@
             border-radius: 8px; 
             padding: 0; 
             box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
-            overflow-y: auto; /* Seul le tableau défile */
+            overflow-y: auto; 
             position: relative; 
             border: 1px solid #bdc3c7;
         }
@@ -168,7 +168,6 @@
         .receipt-body div { margin-bottom: 6px; }
         .btn-close { background: #e74c3c; margin-top: 15px; width: 80%; }
 
-        /* Responsivité de sécurité */
         @media (max-width: 768px) {
             .chef-layout { flex-direction: column; overflow-y: auto;}
             .control-panel { width: 100%; flex-direction: row; flex-wrap: wrap; }
@@ -194,7 +193,7 @@
         </div>
     </div>
 
-    <!-- MODE AGENT (Saisie C.R.I - Format mobile) -->
+    <!-- MODE AGENT (Saisie C.R.I) -->
     <div id="view-agent" class="view">
         <div id="loading-overlay" class="overlay">Transmission sécurisée en cours...</div>
         <form id="cri-form">
@@ -251,7 +250,7 @@
         </form>
     </div>
 
-    <!-- MODE CHEF DE POSTE (Main Courante - Format Desktop Plein Écran) -->
+    <!-- MODE CHEF DE POSTE -->
     <div id="view-chef" class="view">
         <div class="section-title" style="color: #2980b9; display: flex; justify-content: space-between; align-items: center; margin-top:0;">
             <span style="font-size: 14px;">REGISTRE CLOUD - SUPERVISION EN DIRECT</span>
@@ -266,7 +265,7 @@
             <div class="control-panel">
                 <button type="button" class="btn btn-mention" onclick="ajouterMentionChef()">✍️ Ajouter une mention</button>
                 <button type="button" class="btn btn-pdf" onclick="exporterJournalPDF()">📄 Éditer (PDF)</button>
-                <button type="button" class="btn btn-export" onclick="fermerEtExporterJournal()">📥 Fermer et exporter (CSV)</button>
+                <button type="button" class="btn btn-export" onclick="fermerEtExporterJournal()">📥 Éditer (XLSX)</button>
                 <button type="button" class="btn btn-reset" onclick="resetJournal()">🗑️ RAZ (Serveur)</button>
                 <button type="button" class="btn btn-return" onclick="returnToMenu()">🚪 Quitter PCS</button>
             </div>
@@ -321,6 +320,26 @@
         const h = String(now.getHours()).padStart(2, '0');
         const m = String(now.getMinutes()).padStart(2, '0');
         return `${h}:${m}`; // HH:MM
+    }
+
+    // Filtres anti-bugs Google Sheets (Gère les formats ISO comme 2026-08-28T22:00:00.000Z)
+    function formatAffichageDate(rawDate) {
+        if (!rawDate) return "";
+        let strDate = String(rawDate);
+        if (strDate.includes('T')) {
+            let parts = strDate.split('T')[0].split('-');
+            if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+        return strDate.replace(/-/g, '/');
+    }
+
+    function formatAffichageHeure(rawTime) {
+        if (!rawTime) return "";
+        let strTime = String(rawTime);
+        if (strTime.includes('T')) {
+            return strTime.split('T')[1].substring(0, 5);
+        }
+        return strTime.replace(/-/g, ':').substring(0, 5);
     }
 
     function resetDateInputs() {
@@ -392,7 +411,6 @@
         }
     }
 
-    // --- AJOUT D'UNE MENTION PAR LE CHEF DE POSTE ---
     function ajouterMentionChef() {
         const mention = prompt("Saisissez l'événement ou la mention à ajouter au journal :");
         if (!mention) return;
@@ -414,7 +432,7 @@
         });
     }
 
-    // --- LECTURE DES DONNÉES (CHRONOLOGIQUE DE HAUT EN BAS) ---
+    // --- LECTURE DES DONNÉES (CHRONOLOGIQUE) ---
     function fetchJournalData() {
         fetch(SCRIPT_URL)
             .then(response => response.json())
@@ -440,13 +458,13 @@
                 </div>`;
 
                 data.forEach(row => {
-                    let formattedDate = row.date.replace(/-/g, '/');
-                    let formattedTime = row.heure.replace(/-/g, ':').substring(0, 5);
+                    let cleanDate = formatAffichageDate(row.date);
+                    let cleanTime = formatAffichageHeure(row.heure);
 
                     html += `
                     <div class="journal-item">
-                        <div class="j-date">${formattedDate}</div>
-                        <div class="j-time">${formattedTime}</div>
+                        <div class="j-date">${cleanDate}</div>
+                        <div class="j-time">${cleanTime}</div>
                         <div class="j-agent">${row.agent}</div>
                         <div class="j-nature">${row.nature}</div>
                         <div class="j-desc">${row.description}</div>
@@ -535,8 +553,8 @@
         let tableData = [];
         
         localDataBackup.forEach(row => {
-            let fDate = row.date.replace(/-/g, '/');
-            let fTime = row.heure.replace(/-/g, ':').substring(0, 5);
+            let fDate = formatAffichageDate(row.date);
+            let fTime = formatAffichageHeure(row.heure);
             tableData.push([fDate, fTime, row.nature, row.description]);
         });
 
@@ -558,7 +576,7 @@
         doc.save("Main_Courante_Arago.pdf");
     }
 
-    // --- FERMETURE, EXPORT CSV ET RESET SERVEUR ---
+    // --- FERMETURE, EXPORT CSV (XLSX) ET RESET SERVEUR ---
     function fermerEtExporterJournal() {
         if (localDataBackup.length === 0) { alert("Le registre est vide."); return; }
         
@@ -588,8 +606,8 @@
             let cleanNature = row.nature.replace(/;/g, ",");
             let cleanCR = row.description.replace(/(\r\n|\n|\r)/gm, " ").replace(/;/g, ",");
             
-            let fDate = row.date.replace(/-/g, '/');
-            let fTime = row.heure.replace(/-/g, ':').substring(0, 5);
+            let fDate = formatAffichageDate(row.date);
+            let fTime = formatAffichageHeure(row.heure);
 
             csvContent += `${fDate};${fTime};${cleanAgent};${cleanNature};${cleanCR}\r\n`;
         });
@@ -597,7 +615,7 @@
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
-        link.setAttribute("download", "Main_Courante_Editee_Arago.csv");
+        link.setAttribute("download", "Main_Courante_Arago.csv"); // Format CSV standard pour Excel
         document.body.appendChild(link); link.click(); document.body.removeChild(link);
     }
 
